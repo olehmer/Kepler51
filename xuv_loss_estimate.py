@@ -3,7 +3,11 @@ import numpy as np
 
 from math import pi,exp
 
-GG = 6.674E-11 #gravitational constant
+kB = 1.380662E-23        #Boltzmann's constant [J K^-1]
+GG = 6.672E-11           #Gravitational constant [N m^2 kg^-2]
+sigma = 5.6704E-8       #Stefan-Boltzmann constant [W m^-2 K^-4]
+m_H = 1.66E-27          #Mass of H atom [kg]
+
 e_xuv = 0.2 #typically between 0.1 and 0.3
 AU = 1.49598E11 #AU in m
 k51b_orbital_dist = 0.25*AU #orbit of k51b 
@@ -11,11 +15,6 @@ k51b_mass = 1.2E25 #[kg]
 k51b_rad = 4.48E7  #[m]
 k51_mass = 2.1E30  #mass of Kepler 51 in [kg], star
 k51_rad = 7.0E8 #the radius of K51 (assumed ~rad_sun) [m]
-
-r_xuv = k51b_rad #typically within 10-15%?
-
-#k51b_rad = k51b_rad*0.3
-
 
 def calculate_ktide(mp, ms, dist, r_xuv):
     """
@@ -43,12 +42,25 @@ def calculate_xuv_lammer2012(dist):
     L_xuv = (T_corona/0.34)**4.0
     
     #from the above equation the luminosity is given in [ergs s-1]
-    #convert ro [W]
+    #convert to [W]
     L_xuv = L_xuv*(1.0E-7) #convert to W
 
     L_xuv_orb = L_xuv/dist**2.0
 
     return L_xuv_orb
+
+def critical_radius(T, mass, m=2.0):
+    """
+    Calculate the critical radius
+
+    For temperature T and molecular mass, m (default of m=2 for H2)
+    mass is the mass of the planet
+    """
+
+    u0_sqrd = kB*T/(m*m_H) #the isothermal sound speed
+    r_c = GG*mass/(2.0*u0_sqrd)
+
+    return r_c
     
 
 
@@ -95,6 +107,8 @@ def planet_mass_over_time(core_rho, core_mass, mass, rad, dist, star_mass, time=
     #the core radius is easily calculated
     rad_core = (3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
 
+    T = 600.0
+
     #assume the radius of XUV absorption is equal to the radius of the whole
     #planet (usually within ~10% from Luger et el (2015)
     r_xuv = rad
@@ -103,6 +117,7 @@ def planet_mass_over_time(core_rho, core_mass, mass, rad, dist, star_mass, time=
     #so I've ignored it for now
 
     for i in range(1,len(mass_array)):
+        r_xuv = critical_radius(T, mass)/3.6
         k_tide = calculate_ktide(mass, star_mass, dist, r_xuv)
         dMdt = (e_xuv*pi*xuv*rad_core*r_xuv**2.0)/(GG*mass*k_tide)
         dMdt = dMdt * (3.154E13)*ts #convert from seconds to Myr
