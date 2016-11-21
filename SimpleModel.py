@@ -284,6 +284,7 @@ def plot_density_over_time(time,atmos_mass,core_mass,radius):
         rho = (core_mass + atmos_mass[i])/(4.0/3.0*pi*radius[i]**3.0)
         density[i] = rho
 
+
     time_myr = time/SECONDS_PER_YEAR/1.0E6 #time in Myr
     plt.subplot(313)
     plt.plot(time_myr, density*0.001) #convert density to g/cc
@@ -318,14 +319,6 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
 
     p_r = 1.0E5 #the TOA pressure, assume we see at the 1 bar level
 
-    r, r_s = calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T)
-    dMdt = calculate_loss_rate(mass, r_s, r, dist, star_mass)
-
-    print("r=%0.2f, r_s=%0.2f, dMdt=%2.3e"%(r/rad,r_s/rad,dMdt))
-    
-    lifetime = (mass - core_mass)/dMdt/SECONDS_PER_YEAR #lifetime in years
-    print("Atmosphere lifetime: %2.3e"%(lifetime))
-
     num_steps = int(round(dur/ts)) #the number of iterations to perform
 
     time = np.zeros(num_steps)
@@ -353,9 +346,10 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
             total_loss = dMdt*ts
 
             cur_mass = cur_mass - total_loss
-            if cur_mass < core_mass:
+            if cur_mass < core_mass or r < r_s:
                 #we've lost the whole atmosphere!
                 cur_mass = core_mass
+                r = r_s
                 end_i = i
 
         radius[i] = r
