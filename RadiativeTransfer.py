@@ -80,15 +80,16 @@ def UpdateLayerDistance(layers, ind, R_gas, core_rad):
     g = 0.0 #define gravity, g [m s-2]
 
     if layers[t_ind].r == -1: #not set yet
-        g = GG*layers[t_ind].m_below/core_rad**2.0 #gravity!
+        g = GG*layers[len(layers)-1].m_below/core_rad**2.0 #gravity!
     else:
         g = GG*layers[t_ind].m_below/layers[t_ind].r**2.0
-
+       
     #scale height is given by RT/g
     #scale height, the altitude for which pressure decreases by e (~1/3)
     H = R_gas*layers[t_ind].T/g
 
     delta_r = -H*log(layers[t_ind].p_top/layers[t_ind].p_bot) #this is the height of the layer
+    print("%d: H=%0.2f km, T=%0.2f K, delta_r=%0.2f km, g=%0.2f m/s2, r=%0.2f km, p=%0.1f bar"%(t_ind,H/1000.0,layers[t_ind].T, delta_r/1000.0, g, (layers[t_ind].r-core_rad)/1000.0, layers[t_ind].p_bot/100000.0))
 
     if ind == 0:
         #this is the bottom layer
@@ -108,8 +109,8 @@ def LayersInit(N, total_flux, core_mass, core_rad, atmos_mass, R_gas,\
 
     Inputs:
     N - the number of atmospheric layers to use
-    total_flux - the total incident flux. This will be used to set the isothermal
-                 atmospheric temperature if no T_prof is provided [W m-2]
+    total_flux - the total incident flux [W m-2]. This will be used to set the isothermal
+                 atmospheric temperature 
     core_mass - the mass of the planet core [kg]
     core_rad - the radius of the planet core [m]
     atmos_mass - the mass of the atmosphere [kg]
@@ -314,7 +315,7 @@ def UpdateLayerRadTrans(layers, ind, F_uv, F_sol, F_long, kappa_uv, \
         
 def BalanceAtmosphere(core_mass, core_rad, atmos_mass, R_gas, F_uv, F_sol, F_long,\
         kappa_uv, kappa_sol, kappa_long, uv_p_ref, sol_p_ref, long_p_ref,\
-        T_prof_in=[], N=100, iter_lim=500, p_toa_in=1.0E5):
+        N=300, iter_lim=600, p_toa_in=1.0E5):
     """
     This is the top level function to balance the atmospheric model. Given the 
     above parameters this will compute the temperature profile, pressure 
@@ -339,7 +340,6 @@ def BalanceAtmosphere(core_mass, core_rad, atmos_mass, R_gas, F_uv, F_sol, F_lon
     uv_p_ref - the reference pressure for kappa_uv
     sol_p_ref - the reference pressure for kappa_sol
     long_p_ref - the reference pressure for kappa_long
-    T_prof_in - optional temperature profile can be passed in
     N - the number of atmospheric layers to use in the simulation, defaults to 100
     iter_lim - the number of iterations after which the model will stop
     p_toa_in - the pressure at the top of the atmosphere to be used in the model [Pa].
@@ -364,8 +364,9 @@ def BalanceAtmosphere(core_mass, core_rad, atmos_mass, R_gas, F_uv, F_sol, F_lon
             kappa_long,uv_p_ref,sol_p_ref,long_p_ref,R_gas,iter_lim)
 
 
-    for i in range(0,N):
-        UpdateLayerDistance(layers, i, R_gas, core_rad)
+
+    #for i in range(0,N):
+    #    UpdateLayerDistance(layers, i, R_gas, core_rad)
 
     #get the pressure and distance profiles
     p_profile = np.zeros(N)
@@ -406,8 +407,6 @@ def kinda_earth_test():
 
     plt.title("Temperature Profile")
     plt.show()
-
-def kepler51b_profile():
 
 
 

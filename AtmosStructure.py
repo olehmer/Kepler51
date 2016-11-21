@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize
 from math import pi, exp
+from RadiativeTransfer import BalanceAtmosphere
 
 
 ###########################UNIVERSAL CONSTANTS#################################
@@ -95,6 +96,34 @@ def calculate_flux_planck(T, star_rad, dist, start=0.1, stop=10.0, nsteps=1000):
     flux = flux*star_rad**2.0/dist**2.0
     return flux
             
+def calculate_loss_rate(mass, rad, dist, star_mass):
+    """
+    This function will calculate the hydrodynamic loss rate from the planet
+    based on Luger (2015).
+
+    Inputs:
+    mass - the total mass of the planet
+    rad - the radius of the planet
+    dist - the orbital distance of the planet
+    star_mass - the mass of the host star
+
+    Returns:
+    dMdt - the loss rate in kg/s
+    """
+
+    xuv = calculate_xuv_lammer2012(dist)
+
+    #assume the radius of XUV absorption is equal to the radius of the whole
+    #planet (usually within ~10% from Luger et al (2015)
+    #so r_xuv = rad
+
+    k_tide = calculate_ktide(mass, star_mass, dist, rad)
+
+    #Equation 5 from Luger et al. (2015)
+    dMdt = (e_xuv*pi*xuv*rad**3.0)/(GG*mass*k_tide)
+
+    return dMdt
+
 
 def atmos_radius(core_rho, core_mass, mass, rad, dist, star_mass, star_rad,\
         star_T, R_gas, p_top):
@@ -191,11 +220,118 @@ def kepler51b_rad(core_mass, core_rho):
     print("Kepler-51b atmos height is: %0.2f km, cr=%0.2f km"%((r-cr)/1000.0,cr/1000.0))
     print("Fraction of observed radius: %f"%(r/k51b_rad))
 
-kepler51b_rad(M_Earth*0.95, 3515.0)
+
+
+def kepler51b_rad_full(core_mass, core_rho):
+
+    #Some measured constants from Masuda (2014)
+    k51b_orbital_dist = 0.25*AU #orbit of k51b 
+    k51b_mass = 1.2E25 #[kg]
+    k51b_rad = 4.48E7  #[m]
+    k51_mass = 2.1E30  #mass of Kepler 51 (the star) in [kg]
+    k51_rad = 6.957E8 #the radius of K51 (assumed ~rad_sun) [m]
+    k51_T = 6018.0 #surface temp of K51
+
+    p_top = 1.0E5 #100,000 Pa or 1 bar
+
+    atmos_mass = k51b_mass - core_mass
+    core_rad = (core_mass/(4.0/3.0*pi*core_rho))**(1.0/3.0)
+    F_uv = calculate_flux_planck(k51_T, k51_rad, k51b_orbital_dist,\
+            start=0.1, stop=0.4, nsteps=100)
+    F_sol = calculate_flux_planck(k51_T, k51_rad, k51b_orbital_dist,\
+            start=0.4, stop=10.0, nsteps=1000)
+    F_long = 0.0
+
+    #mass absorption coefficients
+    kappa_uv = 0.0
+    kappa_sol = 0.0
+    kappa_long = 0.00001
+
+    #reference pressures
+    uv_p_ref = 1.0E4
+    sol_p_ref = 1.0
+    long_p_ref = 1.0E4
+
+    print("T_eff = %f"%((F_sol/SIGMA)**0.25))
+
+    results = BalanceAtmosphere(core_mass, core_rad, atmos_mass, R_H2, F_uv, F_sol, F_long,\
+        kappa_uv, kappa_sol, kappa_long, uv_p_ref, sol_p_ref, long_p_ref,\
+        N=150, iter_lim=40000, p_toa_in=1.0E2)
+
+    p_profile, r_profile, T_profile = results
+
+    fig, ax1 = plt.subplots()
+    ax1.plot(T_profile, (r_profile-R_Earth)/1000.0, color='red')
+    ax1.set_ylabel("Altitude [km]")
+    ax1.set_xlabel("Temperature [K]")
+
+    ax2 = ax1.twinx()
+    ax2.plot(T_profile, p_profile)
+    ax2.invert_yaxis()
+    ax2.set_ylabel("Pressure [Pa]")
+    ax2.set_yscale('log')
+
+    plt.title("Temperature Profile")
+    plt.show()
 
 
 
+def jupiter_test():
 
+    #Some measured constants from Masuda (2014)
+    j_orbital_dist = 0.25*AU #orbit of k51b 
+    j_mass = 1.898E27 #[kg]
+    j_rad = 6.99E7 #km
+    sun_rad = 6.957E8 #the radius of K51 (assumed ~rad_sun) [m]
+    sun_T = 5800.0 #surface temp of K51
+
+    p_top = 1.0E5 #100,000 Pa or 1 bar
+
+    core_mass = 0.1*j_mass 
+
+    atmos_mass = j_mass - core_mass
+    core_rad = j_rad*0.1
+    F_uv = calculate_flux_planck(sun_T, sun_rad, j_orbital_dist,\
+            start=0.1, stop=0.4, nsteps=100)
+    F_sol = calculate_flux_planck(sun_T, sun_rad, j_orbital_dist,\
+            start=0.4, stop=10.0, nsteps=1000)
+    F_long = 0.0
+
+    #mass absorption coefficients
+    kappa_uv = 0.0
+    kappa_sol = 0.0
+    kappa_long = 0.01
+
+    #reference pressures
+    uv_p_ref = 1.0E4
+    sol_p_ref = 1.0
+    long_p_ref = 1.0E14
+
+    print("T_eff = %f"%((F_sol/SIGMA)**0.25))
+
+    results = BalanceAtmosphere(core_mass, core_rad, atmos_mass, R_H2, F_uv, F_sol, F_long,\
+        kappa_uv, kappa_sol, kappa_long, uv_p_ref, sol_p_ref, long_p_ref,\
+        N=150, iter_lim=40000, p_toa_in=1.0E2)
+
+    p_profile, r_profile, T_profile = results
+
+    fig, ax1 = plt.subplots()
+    ax1.plot(T_profile, (r_profile-R_Earth)/1000.0, color='red')
+    ax1.set_ylabel("Altitude [km]")
+    ax1.set_xlabel("Temperature [K]")
+
+    ax2 = ax1.twinx()
+    ax2.plot(T_profile, p_profile)
+    ax2.invert_yaxis()
+    ax2.set_ylabel("Pressure [Pa]")
+    ax2.set_yscale('log')
+
+    plt.title("Temperature Profile")
+    plt.show()
+
+
+
+kepler51b_rad_full(M_Earth*1.95, 3515.0)
 
 
 
