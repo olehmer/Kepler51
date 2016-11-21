@@ -8,9 +8,10 @@ hydrogen rich atmosphere.
 """
 
 
-import matplotlib.pyplot as plt
 import numpy as np
 from math import pi, exp, log
+import matplotlib.pyplot as plt
+
 
 
 ###########################UNIVERSAL CONSTANTS#################################
@@ -158,6 +159,207 @@ def calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T):
 
     return (r,r_s)
 
+def plot_radius_over_time(time, radius, r_s):
+    """
+    Plot the radius of the planet at 5 points across the time array. Plotted
+    in terms of core radius.
+
+    Inputs:
+    time - array of time values
+    radius - array of corresponding radius values
+    r_s - the surface radius of the core
+    """
+
+    fig2 = plt.figure(figsize=(10,3.5))
+    plt.subplot(aspect="equal")
+
+    #find the 5 points
+    step = len(time)/4 #3 interior points, both ends
+
+    r_0 = (time[0],radius[0]/r_s)
+    r_1 = (time[step],radius[step]/r_s)
+    r_2 = (time[step*2],radius[step*2]/r_s)
+    r_3 = (time[step*3],radius[step*3]/r_s)
+    r_4 = (time[-1],radius[-1]/r_s)
+
+    #the height of the largest circle
+    h = r_0[1]
+    
+
+    x_pts = np.zeros(5) #keep track of the x locations
+
+    #create the circle objects
+    spacing = 2.0
+
+    x_pos = r_0[1]+spacing
+    x_pts[0] = x_pos
+    circ0 = plt.Circle((x_pos,0),radius=r_0[1], alpha=0.2, color="blue")
+    core0 = plt.Circle((x_pos,0),radius=1.0, alpha=1.0, color="black")
+
+    x_pos = x_pos+r_0[1]+r_1[1]+ spacing
+    x_pts[1] = x_pos
+    circ1 = plt.Circle((x_pos,0),radius=r_1[1], alpha=0.2, color="blue")
+    core1 = plt.Circle((x_pos,0),radius=1.0, alpha=1.0, color="black")
+
+    x_pos = x_pos + r_1[1]+r_2[1]+spacing
+    x_pts[2] = x_pos
+    circ2 = plt.Circle((x_pos,0),radius=r_2[1], alpha=0.2, color="blue")
+    core2 = plt.Circle((x_pos,0),radius=1.0, alpha=1.0, color="black")
+
+    x_pos = x_pos + r_2[1] + r_3[1] + spacing
+    x_pts[3] = x_pos
+    circ3 = plt.Circle((x_pos,0),radius=r_3[1], alpha=0.2, color="blue")
+    core3 = plt.Circle((x_pos,0),radius=1.0, alpha=1.0, color="black")
+
+    x_pos = x_pos + r_3[1] + r_4[1] + spacing
+    x_pts[4] = x_pos
+    circ4 = plt.Circle((x_pos,0),radius=r_4[1], alpha=0.2, color="blue")
+    core4 = plt.Circle((x_pos,0),radius=1.0, alpha=1.0, color="black")
+
+    end_x = x_pos + r_4[1] + spacing
+
+    #radius over time, plot 5 different times
+    plt.gcf().gca().add_artist(circ0)
+    plt.gcf().gca().add_artist(core0)
+    plt.gcf().gca().add_artist(circ1)
+    plt.gcf().gca().add_artist(core1)
+    plt.gcf().gca().add_artist(circ2)
+    plt.gcf().gca().add_artist(core2)
+    plt.gcf().gca().add_artist(circ3)
+    plt.gcf().gca().add_artist(core3)
+    plt.gcf().gca().add_artist(circ4)
+    plt.gcf().gca().add_artist(core4)
+
+    plt.xlim(0,end_x)
+    plt.ylim(-(h+1),h+1)
+
+    #update the tick marks
+    seconds_per_year = 3.154E7 #seconds in a year
+    plt.gcf().gca().set_xticks(x_pts)
+
+    x0 = str("%0.1f"%(r_0[0]/seconds_per_year/1.0E6)) #tick mark in Myr
+    x1 = str("%0.1f"%(r_1[0]/seconds_per_year/1.0E6)) 
+    x2 = str("%0.1f"%(r_2[0]/seconds_per_year/1.0E6)) 
+    x3 = str("%0.1f"%(r_3[0]/seconds_per_year/1.0E6)) 
+    x4 = str("%0.1f"%(r_4[0]/seconds_per_year/1.0E6)) 
+    x_labels = [x0,x1,x2,x3,x4]
+    
+    ax = plt.gcf().gca()
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels([str(abs(x)) for x in ax.get_yticks()])
+
+    plt.xlabel("Time [Myr]")
+    plt.ylabel("Core Radii")
+    plt.title("Atmospheric Radius Over Time")
+
+
+def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
+        star_mass, timestep=1.0E4, duration=3.0E8):
+    """
+    Plot the planet over time taking into account the hydrodynamic escape.
+
+    Inputs:
+    mass - the total mass of the planet [kg]
+    rad - the radius of the planet (assumed to be the 1 bar level) [m]
+    dist - the orbital distance of the planet [m]
+    T - the isothermal temperature of the planetary atmosphere [K] 
+    core_mass - the mass in the planet's core [kg]
+    core_rho - the density of the planet's core [kg m-3]
+    R_gas - the specific gas constant of the atmosphere [J kg-1 K]
+    star_mass - the mass of the parent star [kg]
+    timestep - the timestep to use in the simulation, given in years
+    duration - the duration of the simulation in years
+
+    """
+
+    seconds_per_year = 3.154E7 #seconds in a year
+    ts = timestep*seconds_per_year #10,000 years in seconds as our timestep
+
+    dur = duration*seconds_per_year #the duration of the simulation, 300 Myr
+
+    p_r = 1.0E5 #the TOA pressure, assume we see at the 1 bar level
+
+    r, r_s = calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T)
+    dMdt = calculate_loss_rate(mass, r_s, r, dist, star_mass)
+
+    print("r=%0.2f, r_s=%0.2f, dMdt=%2.3e"%(r/rad,r_s/rad,dMdt))
+    
+    lifetime = (mass - core_mass)/dMdt/seconds_per_year #lifetime in years
+    print("Atmosphere lifetime: %2.3e"%(lifetime))
+
+    num_steps = int(round(dur/ts)) #the number of iterations to perform
+
+    time = np.zeros(num_steps)
+    atmos_mass = np.zeros(num_steps)
+    radius = np.zeros(num_steps)
+
+    r, r_s = calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T)
+
+    #enter the starting values
+    time[0] = 0.0
+    atmos_mass[0] = mass - core_mass
+    radius[0] = r
+
+    #keep track of the index at which the entire atmosphere is lost
+    end_i = num_steps - 1
+
+    cur_mass = mass
+
+    for i in range(1, num_steps):
+        r = r_s
+        if cur_mass > core_mass:
+            r, r_s = calculate_rad(p_r, core_mass, core_rho, cur_mass, R_gas, T)
+            dMdt = calculate_loss_rate(cur_mass, r_s, r, dist, star_mass)
+
+            total_loss = dMdt*ts
+
+            cur_mass = cur_mass - total_loss
+            if cur_mass < core_mass:
+                #we've lost the whole atmosphere!
+                cur_mass = core_mass
+                end_i = i
+
+        radius[i] = r
+        time[i] = i*ts
+        atmos_mass[i] = cur_mass - core_mass
+
+
+
+    fig1 = plt.figure()
+    plt.plot(time/seconds_per_year/1.0E6, atmos_mass/atmos_mass[0])
+    plt.xlabel("Time [Myr]")
+    plt.ylabel("Atmospheric Mass Percent")
+    plt.title("T: %0.0f [K], Density: %0.2f [g/cc], Core mass fraction:%0.2f"%(T,core_rho/1000.0,core_mass/mass))
+
+    plot_radius_over_time(time[0:end_i+1], radius[0:end_i+1], r_s)
+
+    plt.show()
+
+        
+
+
+
+
+T = 1500.0
+core_rho = 5800.0
+core_mass = k51b_mass*0.95
+plot_planet_over_time(k51b_mass, k51b_rad, k51b_orbital_dist, T, \
+        core_mass, core_rho, R_H2, k51_mass, duration=8.0E7)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -189,7 +391,6 @@ def test_kepler51b():
     print("found altitude = %0.1f km (%0.2f of observed)"%((r-r_s)/1000.0, r/k51b_rad))
     print("core is %0.2f of observed"%(r_s/k51b_rad))
 
-test_kepler51b()
 
 
 
