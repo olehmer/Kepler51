@@ -25,6 +25,7 @@ R_H2 = 4124.0 #gas constant for H2 [J kg-1 K]
 R_AIR = 287.0 #gas constant for air [J kg-1 K]
 M_Earth = 5.972E24 #mass of Earth in [kg]
 R_Earth = 6.371E6 #radius of Earth [m]
+SECONDS_PER_YEAR = 3.154E7 #seconds in a year
 ###############################################################################
 
 k51b_orbital_dist = 0.25*AU #orbit of k51b 
@@ -170,8 +171,7 @@ def plot_radius_over_time(time, radius, r_s):
     r_s - the surface radius of the core
     """
 
-    fig2 = plt.figure(figsize=(10,3.5))
-    plt.subplot(aspect="equal")
+    plt.subplot(311,aspect="equal")
 
     #find the 5 points
     step = len(time)/4 #3 interior points, both ends
@@ -234,24 +234,64 @@ def plot_radius_over_time(time, radius, r_s):
     plt.ylim(-(h+1),h+1)
 
     #update the tick marks
-    seconds_per_year = 3.154E7 #seconds in a year
     plt.gcf().gca().set_xticks(x_pts)
 
-    x0 = str("%0.1f"%(r_0[0]/seconds_per_year/1.0E6)) #tick mark in Myr
-    x1 = str("%0.1f"%(r_1[0]/seconds_per_year/1.0E6)) 
-    x2 = str("%0.1f"%(r_2[0]/seconds_per_year/1.0E6)) 
-    x3 = str("%0.1f"%(r_3[0]/seconds_per_year/1.0E6)) 
-    x4 = str("%0.1f"%(r_4[0]/seconds_per_year/1.0E6)) 
+    x0 = str("%0.1f"%(r_0[0]/SECONDS_PER_YEAR/1.0E6)) #tick mark in Myr
+    x1 = str("%0.1f"%(r_1[0]/SECONDS_PER_YEAR/1.0E6)) 
+    x2 = str("%0.1f"%(r_2[0]/SECONDS_PER_YEAR/1.0E6)) 
+    x3 = str("%0.1f"%(r_3[0]/SECONDS_PER_YEAR/1.0E6)) 
+    x4 = str("%0.1f"%(r_4[0]/SECONDS_PER_YEAR/1.0E6)) 
     x_labels = [x0,x1,x2,x3,x4]
     
     ax = plt.gcf().gca()
     ax.set_xticklabels(x_labels)
     ax.set_yticklabels([str(abs(x)) for x in ax.get_yticks()])
 
-    plt.xlabel("Time [Myr]")
     plt.ylabel("Core Radii")
-    plt.title("Atmospheric Radius Over Time")
+    plt.title("A", loc="left")
 
+
+def plot_mass_over_time(time, atmos_mass):
+    """
+    Plot the mass of the planet over time
+
+    Inputs:
+    time - the array of time values
+    atmos_mass - the array of atmospheric mass values
+    """
+
+    time_myr = time/SECONDS_PER_YEAR/1.0E6 #time in Myr
+    plt.subplot(312)
+    plt.plot(time_myr, atmos_mass/atmos_mass[0])
+    plt.xlim(0,time_myr[-1])
+    plt.ylabel("Atmos. Mass %")
+    plt.title("B", loc="left")
+
+def plot_density_over_time(time,atmos_mass,core_mass,radius):
+    """
+    Plot the density of the planet over time.
+
+    Inputs:
+    time - the array of time values
+    atmos_mass - the array of atmospheric mass values
+    core_mass - the mass of the core
+    radius - the array of radius values
+    """
+
+    density = np.zeros(len(time))
+    for i in range(0,len(time)):
+        #calculate density in [kg m-3]
+        rho = (core_mass + atmos_mass[i])/(4.0/3.0*pi*radius[i]**3.0)
+        density[i] = rho
+
+    time_myr = time/SECONDS_PER_YEAR/1.0E6 #time in Myr
+    plt.subplot(313)
+    plt.plot(time_myr, density*0.001) #convert density to g/cc
+    plt.xlim(0,time_myr[-1])
+    plt.ylabel("Density [g/cc]")
+    plt.title("C", loc="left")
+    
+    
 
 def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
         star_mass, timestep=1.0E4, duration=3.0E8):
@@ -272,10 +312,9 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
 
     """
 
-    seconds_per_year = 3.154E7 #seconds in a year
-    ts = timestep*seconds_per_year #10,000 years in seconds as our timestep
+    ts = timestep*SECONDS_PER_YEAR #10,000 years in seconds as our timestep
 
-    dur = duration*seconds_per_year #the duration of the simulation, 300 Myr
+    dur = duration*SECONDS_PER_YEAR #the duration of the simulation, 300 Myr
 
     p_r = 1.0E5 #the TOA pressure, assume we see at the 1 bar level
 
@@ -284,7 +323,7 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
 
     print("r=%0.2f, r_s=%0.2f, dMdt=%2.3e"%(r/rad,r_s/rad,dMdt))
     
-    lifetime = (mass - core_mass)/dMdt/seconds_per_year #lifetime in years
+    lifetime = (mass - core_mass)/dMdt/SECONDS_PER_YEAR #lifetime in years
     print("Atmosphere lifetime: %2.3e"%(lifetime))
 
     num_steps = int(round(dur/ts)) #the number of iterations to perform
@@ -324,15 +363,16 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
         atmos_mass[i] = cur_mass - core_mass
 
 
+    #only plot the interesting parts
+    time = time[0:end_i+1]
+    atmos_mass = atmos_mass[0:end_i+1]
+    radius = radius[0:end_i+1]
 
-    fig1 = plt.figure()
-    plt.plot(time/seconds_per_year/1.0E6, atmos_mass/atmos_mass[0])
+    plt.subplots_adjust(hspace=0.3)
+    plot_radius_over_time(time, radius, r_s)
+    plot_mass_over_time(time, atmos_mass)
+    plot_density_over_time(time,atmos_mass,core_mass,radius)
     plt.xlabel("Time [Myr]")
-    plt.ylabel("Atmospheric Mass Percent")
-    plt.title("T: %0.0f [K], Density: %0.2f [g/cc], Core mass fraction:%0.2f"%(T,core_rho/1000.0,core_mass/mass))
-
-    plot_radius_over_time(time[0:end_i+1], radius[0:end_i+1], r_s)
-
     plt.show()
 
         
@@ -340,7 +380,7 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
 
 
 
-T = 1500.0
+T = 1700.0
 core_rho = 5800.0
 core_mass = k51b_mass*0.95
 plot_planet_over_time(k51b_mass, k51b_rad, k51b_orbital_dist, T, \
