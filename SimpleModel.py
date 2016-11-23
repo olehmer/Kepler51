@@ -264,7 +264,7 @@ def plot_mass_over_time(time, atmos_mass):
     plt.subplot(312)
     plt.plot(time_myr, atmos_mass/atmos_mass[0])
     plt.xlim(0,time_myr[-1])
-    plt.ylabel("Atmos. Mass %")
+    plt.ylabel("Atmosphere Mass\nFraction", multialignment="center")
     plt.title("B", loc="left")
 
 def plot_density_over_time(time,atmos_mass,core_mass,radius):
@@ -310,7 +310,6 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
     star_mass - the mass of the parent star [kg]
     timestep - the timestep to use in the simulation, given in years
     duration - the duration of the simulation in years
-
     """
 
     ts = timestep*SECONDS_PER_YEAR #10,000 years in seconds as our timestep
@@ -370,15 +369,14 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
     plt.show()
 
         
+#TODO the XUV should decay over time - find an expression for that!
 
-
-
-
-T = 1700.0
-core_rho = 5800.0
-core_mass = k51b_mass*0.95
-plot_planet_over_time(k51b_mass, k51b_rad, k51b_orbital_dist, T, \
-        core_mass, core_rho, R_H2, k51_mass, duration=8.0E7)
+def plot_kepler51b():
+    T = 1700.0
+    core_rho = 5800.0
+    core_mass = k51b_mass*0.95
+    plot_planet_over_time(k51b_mass, k51b_rad, k51b_orbital_dist, T, \
+            core_mass, core_rho, R_H2, k51_mass, duration=8.0E7)
 
 
 
