@@ -69,6 +69,27 @@ def calculate_xuv_lammer2012(dist):
 
     return L_xuv_orb
 
+def calculate_xuv_at_t(L_xuv, t, t_sat=1.0E8):
+    """
+    Calculate the XUV flux after the specified amount of time.
+
+    Inputs:
+    L_xuv - the initial XUV flux
+    t - the time since saturation age in years
+    t_sat - the saturation age for the XUV in years, default to 100 Myr
+
+    Returns:
+    F_xuv - the modified XUV flux
+
+    NOTE: see equation (1) of Luger et al (2015)
+    """
+
+    F_xuv = L_xuv
+
+    if t > t_sat:
+        F_xuv = L_xuv*(t_sat/t) #beta is of order -1
+
+    return F_xuv
 
 
 def calculate_flux_planck(T, star_rad, dist, start=0.1, stop=10.0, nsteps=1000):
@@ -96,7 +117,7 @@ def calculate_flux_planck(T, star_rad, dist, start=0.1, stop=10.0, nsteps=1000):
     flux = flux*star_rad**2.0/dist**2.0
     return flux
             
-def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass):
+def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass, time):
     """
     This function will calculate the hydrodynamic loss rate from the planet
     based on Luger (2015).
@@ -107,12 +128,15 @@ def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass):
     rad_1bar - the radius of the 1 bar level in the atmosphere
     dist - the orbital distance of the planet
     star_mass - the mass of the host star
+    time - the time since formation of the planet [in years]
 
     Returns:
     dMdt - the loss rate in kg/s
     """
 
     xuv = calculate_xuv_lammer2012(dist)
+    F_xuv = calculate_xuv_at_t(xuv, time)
+
 
     #assume the radius of XUV absorption is equal to the radius of the whole
     #planet (usually within ~10% from Luger et al (2015)
@@ -121,7 +145,7 @@ def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass):
     k_tide = calculate_ktide(mass, star_mass, dist, core_rad)
 
     #Equation 5 from Luger et al. (2015)
-    dMdt = (e_xuv*pi*xuv*core_rad*r_xuv**2.0)/(GG*mass*k_tide)
+    dMdt = (e_xuv*pi*F_xuv*core_rad*r_xuv**2.0)/(GG*mass*k_tide)
 
     return dMdt
 
@@ -153,10 +177,13 @@ def calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T):
     #calculate the surface pressure
     p_s = atmos_mass*g_s/(4.0*pi*r_s**2.0)
 
-
     H = R_gas*T/g_s
 
     r = r_s**2.0/(H*log(p_r/p_s)+r_s)
+
+    if r < r_s:
+        #on really small hot bodies this can happen
+        r = r_s
 
     return (r,r_s)
 
@@ -293,15 +320,13 @@ def plot_density_over_time(time,atmos_mass,core_mass,radius):
     plt.title("C", loc="left")
     
     
-
-def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
+def planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
         star_mass, timestep=1.0E4, duration=3.0E8):
     """
-    Plot the planet over time taking into account the hydrodynamic escape.
+     Calculate the planet over time taking into account the hydrodynamic escape.
 
     Inputs:
     mass - the total mass of the planet [kg]
-    rad - the radius of the planet (assumed to be the 1 bar level) [m]
     dist - the orbital distance of the planet [m]
     T - the isothermal temperature of the planetary atmosphere [K] 
     core_mass - the mass in the planet's core [kg]
@@ -310,6 +335,12 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
     star_mass - the mass of the parent star [kg]
     timestep - the timestep to use in the simulation, given in years
     duration - the duration of the simulation in years
+
+    Returns:
+    time - the array of time values
+    atmos_mass - the atmospheric mass at the corresponding time
+    radius - the planetary radius at the time
+    r_s - the radius of the core
     """
 
     ts = timestep*SECONDS_PER_YEAR #10,000 years in seconds as our timestep
@@ -326,6 +357,7 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
 
     r, r_s = calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T)
 
+
     #enter the starting values
     time[0] = 0.0
     atmos_mass[0] = mass - core_mass
@@ -340,7 +372,7 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
         r = r_s
         if cur_mass > core_mass:
             r, r_s = calculate_rad(p_r, core_mass, core_rho, cur_mass, R_gas, T)
-            dMdt = calculate_loss_rate(cur_mass, r_s, r, dist, star_mass)
+            dMdt = calculate_loss_rate(cur_mass, r_s, r, dist, star_mass, i*ts/SECONDS_PER_YEAR)
 
             total_loss = dMdt*ts
 
@@ -356,10 +388,33 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
         atmos_mass[i] = cur_mass - core_mass
 
 
-    #only plot the interesting parts
+    #only return the interesting parts
     time = time[0:end_i+1]
     atmos_mass = atmos_mass[0:end_i+1]
     radius = radius[0:end_i+1]
+
+    return (time, atmos_mass, radius, r_s)
+
+
+def plot_planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
+        star_mass, timestep=1.0E4, duration=3.0E8):
+    """
+    Plot the planet over time taking into account the hydrodynamic escape.
+
+    Inputs:
+    mass - the total mass of the planet [kg]
+    dist - the orbital distance of the planet [m]
+    T - the isothermal temperature of the planetary atmosphere [K] 
+    core_mass - the mass in the planet's core [kg]
+    core_rho - the density of the planet's core [kg m-3]
+    R_gas - the specific gas constant of the atmosphere [J kg-1 K]
+    star_mass - the mass of the parent star [kg]
+    timestep - the timestep to use in the simulation, given in years
+    duration - the duration of the simulation in years
+    """
+
+    time, atmos_mass, radius, r_s = planet_over_time(mass,dist,T,core_mass,\
+            core_rho,R_gas,star_mass,timestep,duration)
 
     plt.subplots_adjust(hspace=0.3)
     plot_radius_over_time(time, radius, r_s)
@@ -368,15 +423,13 @@ def plot_planet_over_time(mass, rad, dist, T, core_mass, core_rho, R_gas,\
     plt.xlabel("Time [Myr]")
     plt.show()
 
-        
-#TODO the XUV should decay over time - find an expression for that!
 
 def plot_kepler51b():
-    T = 1700.0
+    T = 1500.0
     core_rho = 5800.0
-    core_mass = k51b_mass*0.95
-    plot_planet_over_time(k51b_mass, k51b_rad, k51b_orbital_dist, T, \
-            core_mass, core_rho, R_H2, k51_mass, duration=8.0E7)
+    core_mass = k51b_mass*0.99
+    plot_planet_over_time(k51b_mass, k51b_orbital_dist, T, \
+            core_mass, core_rho, R_H2, k51_mass, duration=1.0E9)
 
 
 
@@ -384,10 +437,64 @@ def plot_kepler51b():
 
 
 
+def plot_escape_parameter_space():
+    """
+    Plot the parameter space for mass loss. Explore what determines if a planet
+    is rocky or gaseous
+    """
+
+    core_rho = 5510.0 #core density [kg m-3]
+    core_mass_percent = 0.99 #core represents 97% of the mass
+    dist = 0.25*AU #orbital distance [m]
+    T = 1500.0 #isothermal atmospheric temperature [k], depends on dist
+    R_gas = R_H2
+    star_mass = k51_mass
 
 
+    min_mass = 0.5*M_Earth
+    max_mass = 10.0*M_Earth
+
+    masses = np.linspace(min_mass,max_mass,20)
+    radii = np.zeros(len(masses))
+    mass_loss = np.zeros(len(masses))
+
+    for i in range(0,len(masses)):
+        core_mass = masses[i]*core_mass_percent
+        ts, ms, rs, r_sur = planet_over_time(masses[i],dist,T,core_mass,\
+                core_rho,R_gas,star_mass,duration=1.0E9)
+
+        #we only want the last r from this
+        radii[i] = rs[-1]
+
+        mass_loss[i] = ms[-1]/(core_mass-core_mass*core_mass_percent)
+
+    #create the Earth density curve
+    line_masses = np.linspace(min_mass,max_mass,200)
+    line_radii_earth = np.zeros(len(line_masses))
+    line_radii_water = np.zeros(len(line_masses))
+    rho_earth = 5510.0 #earth density
+    rho_water = 1000.0
+    for i in range(0,200):
+        r_earth = (line_masses[i]/(4.0/3.0*pi*rho_earth))**(1.0/3.0)
+        r_water = (line_masses[i]/(4.0/3.0*pi*rho_water))**(1.0/3.0)
+        line_radii_earth[i] = r_earth
+        line_radii_water[i] = r_water
+
+    #plot the line of Earth density
+    plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "g--")
+    plt.plot(line_masses/M_Earth, line_radii_water/R_Earth, "b-.")
+
+    cm = plt.cm.get_cmap("coolwarm")
+    sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=mass_loss, cmap=cm, s=80.0)
+    plt.colorbar(sc).set_label("Remaining Atmospheric\nFraction")
+    plt.xlim(min_mass/M_Earth,max_mass/M_Earth)
+    plt.xlabel("Mass [Earth Masses]")
+    plt.ylabel("Radius [Earth Radii]")
+    plt.show()
 
 
+plot_escape_parameter_space()
+        
 
 
 
