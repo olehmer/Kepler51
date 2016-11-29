@@ -9,10 +9,13 @@ hydrogen rich atmosphere.
 
 
 import numpy as np
-from math import pi, exp, log
+from math import pi, exp, log, floor
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation 
+import sys
 
-
+from moviepy.video.io.bindings import mplfig_to_npimage #used for animation
+import moviepy.editor as mpy
 
 ###########################UNIVERSAL CONSTANTS#################################
 kB = 1.380662E-23        #Boltzmann's constant [J K^-1]
@@ -321,7 +324,7 @@ def plot_density_over_time(time,atmos_mass,core_mass,radius):
     
     
 def planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
-        star_mass, timestep=1.0E4, duration=3.0E8):
+        star_mass, timestep=1.0E6, duration=3.0E8):
     """
      Calculate the planet over time taking into account the hydrodynamic escape.
 
@@ -377,7 +380,7 @@ def planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
             total_loss = dMdt*ts
 
             cur_mass = cur_mass - total_loss
-            if cur_mass < core_mass or r < r_s:
+            if cur_mass <= core_mass or r <= r_s:
                 #we've lost the whole atmosphere!
                 cur_mass = core_mass
                 r = r_s
@@ -397,7 +400,7 @@ def planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
 
 
 def plot_planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
-        star_mass, timestep=1.0E4, duration=3.0E8):
+        star_mass, timestep=1.0E6, duration=3.0E8):
     """
     Plot the planet over time taking into account the hydrodynamic escape.
 
@@ -425,9 +428,9 @@ def plot_planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
 
 
 def plot_kepler51b():
-    T = 1500.0
-    core_rho = 5800.0
-    core_mass = k51b_mass*0.99
+    T = 1700.0
+    core_rho = 5510.0
+    core_mass = k51b_mass*0.95
     plot_planet_over_time(k51b_mass, k51b_orbital_dist, T, \
             core_mass, core_rho, R_H2, k51_mass, duration=1.0E9)
 
@@ -435,69 +438,182 @@ def plot_kepler51b():
 
 
 
-
-
-def plot_escape_parameter_space():
+def plot_escape_parameter_space(DUR=1.0E9, TS=1.0E6, NO_PLOT=False):
     """
     Plot the parameter space for mass loss. Explore what determines if a planet
     is rocky or gaseous
+
+    Inputs:
+    DUR - the duration of the model [yrs]
+    TS - the time step to use [yrs]
+    NO_PLOT - don't plot the result, just return the data
+
+    Returns:
+    masses - the masses at the end of the model run
+    radii - the radii at the end of the model
+    atmos_mass - the remaining atmospheric mass
     """
 
     core_rho = 5510.0 #core density [kg m-3]
-    core_mass_percent = 0.99 #core represents 97% of the mass
+    core_mass_percent = 0.97 #core represents 97% of the mass
     dist = 0.25*AU #orbital distance [m]
     T = 1500.0 #isothermal atmospheric temperature [k], depends on dist
     R_gas = R_H2
     star_mass = k51_mass
-
 
     min_mass = 0.5*M_Earth
     max_mass = 10.0*M_Earth
 
     masses = np.linspace(min_mass,max_mass,20)
     radii = np.zeros(len(masses))
-    mass_loss = np.zeros(len(masses))
+    atmos_mass = np.zeros(len(masses))
 
     for i in range(0,len(masses)):
+        #just set the core mass to the percent of the total mass specified
         core_mass = masses[i]*core_mass_percent
+
+        #calculate the planet over time!
         ts, ms, rs, r_sur = planet_over_time(masses[i],dist,T,core_mass,\
-                core_rho,R_gas,star_mass,duration=1.0E9)
+                core_rho,R_gas,star_mass,duration=DUR, timestep=TS)
 
-        #we only want the last r from this
+        #we only want the last values for the plot from this
         radii[i] = rs[-1]
+        atmos_mass[i] = ms[-1]/(core_mass-core_mass*core_mass_percent)
 
-        mass_loss[i] = ms[-1]/(core_mass-core_mass*core_mass_percent)
+        if atmos_mass[i] > 1.0:
+            #for very short timescales numerical issues sometimes crop up 
+            atmos_mass[i] = 1.0
 
-    #create the Earth density curve
-    line_masses = np.linspace(min_mass,max_mass,200)
-    line_radii_earth = np.zeros(len(line_masses))
-    line_radii_water = np.zeros(len(line_masses))
-    rho_earth = 5510.0 #earth density
-    rho_water = 1000.0
-    for i in range(0,200):
-        r_earth = (line_masses[i]/(4.0/3.0*pi*rho_earth))**(1.0/3.0)
-        r_water = (line_masses[i]/(4.0/3.0*pi*rho_water))**(1.0/3.0)
-        line_radii_earth[i] = r_earth
-        line_radii_water[i] = r_water
 
-    #plot the line of Earth density
-    plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "g--")
-    plt.plot(line_masses/M_Earth, line_radii_water/R_Earth, "b-.")
 
-    cm = plt.cm.get_cmap("coolwarm")
-    sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=mass_loss, cmap=cm, s=80.0)
-    plt.colorbar(sc).set_label("Remaining Atmospheric\nFraction")
-    plt.xlim(min_mass/M_Earth,max_mass/M_Earth)
+    if not NO_PLOT:
+        #create the Earth density curve and water density curve
+        line_masses = np.linspace(min_mass,max_mass,200)
+        line_radii_earth = np.zeros(len(line_masses))
+        line_radii_water = np.zeros(len(line_masses))
+        rho_earth = 5510.0 #earth density
+        rho_water = 1000.0
+        for i in range(0,200):
+            r_earth = (line_masses[i]/(4.0/3.0*pi*rho_earth))**(1.0/3.0)
+            r_water = (line_masses[i]/(4.0/3.0*pi*rho_water))**(1.0/3.0)
+            line_radii_earth[i] = r_earth
+            line_radii_water[i] = r_water
+
+        #plot the line of Earth density
+        plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "g--")
+        plt.plot(line_masses/M_Earth, line_radii_water/R_Earth, "b-.")
+
+        #plot the data
+        cm = plt.cm.get_cmap("bwr")
+        sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=atmos_mass, cmap=cm, s=80.0)
+        plt.colorbar(sc).set_label("Remaining Atmospheric\nFraction")
+        plt.xlim(min_mass/M_Earth,max_mass/M_Earth)
+        plt.xlabel("Mass [Earth Masses]")
+        plt.ylabel("Radius [Earth Radii]")
+        plt.show()
+
+    return masses, radii, atmos_mass
+
+def animate_loss(SAVE_TO_FILE=False):
+    """
+    Animate the plot_escape_parameter_space() function over time
+
+    Inputs:
+    SAVE_TO_FILE - if true the animation will be written to the file
+                   protoatmosphere_loss.gif
+    """
+
+    save_duration = 10 #the amount of time the saved gif should last [s]
+
+    start = 1.0E8 #start at 10 Myr
+    end = 1.0E10 #end at 1 Gyr
+    count = 100
+    dur_steps = np.linspace(start, end, count) #generate count frames
+
+    timestep = 1.0E6 #the time step to use
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cm = plt.cm.get_cmap("bwr")
+
+    frames = []
+    for i in range(0, count):
+        #print the status just cause
+        sys.stderr.write("\r%2.0f%% done"%(100.0*float(i)/float(count)))
+        sys.stderr.flush()
+
+        cur_dur = dur_steps[i]
+        curVals = plot_escape_parameter_space(DUR=cur_dur, \
+                TS=timestep, NO_PLOT=True)
+        frames.append(curVals)
+
+    sys.stderr.write("\r100%% done\n")
+    sys.stderr.flush()
+
+    #init the colorbar and plot
+    masses, radii, atmos_mass = frames[0]
+    sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=atmos_mass, cmap=cm, s=80.0)
+    clb = plt.colorbar(sc)
+    clb.set_label("Remaining Atmospheric\nFraction")
+    plt.xlim(np.min(masses)/M_Earth,np.max(masses)/M_Earth)
+    plt.ylim(0.5,4)
     plt.xlabel("Mass [Earth Masses]")
     plt.ylabel("Radius [Earth Radii]")
-    plt.show()
 
 
-plot_escape_parameter_space()
+    #set up the time label
+    ax.text(7,3.75,"Time: %4.0d [Myr]"%(0))
+
+    #calculate the Earth density line
+    line_masses = np.linspace(0.5*M_Earth,10*M_Earth, 200)
+    line_radii_earth = np.zeros(len(line_masses))
+    rho_earth = 5510.0 #earth density
+    for i in range(0,200):
+        r_earth = (line_masses[i]/(4.0/3.0*pi*rho_earth))**(1.0/3.0)
+        line_radii_earth[i] = r_earth
+
+    
+    def animate(i):
+        if SAVE_TO_FILE:
+            #i is passed in as the amount of time in the duration
+            i = int(floor(i/float(save_duration)*float(count)))
+        masses, radii, atmos_mass = frames[i]
+        plt.cla() #clear the frame
+        sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=atmos_mass, cmap=cm, s=80.0)
+
+        plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "g--")
+
+        plt.xlim(np.min(masses)/M_Earth,np.max(masses)/M_Earth)
+        plt.ylim(0.5,4)
+        plt.xlabel("Mass [Earth Masses]")
+        plt.ylabel("Radius [Earth Radii]")
+
+        #update the time text
+        ax.text(7,3.75,"Time: %5.0d [Myr]"%(dur_steps[i]/1.0E6))
+
+        if SAVE_TO_FILE:
+            return mplfig_to_npimage(fig)
+
+
+    if SAVE_TO_FILE:
+        ani = mpy.VideoClip(animate, duration=save_duration) 
+        ani.write_gif("protoatmosphere_loss.gif", fps=20, opt="nq")
+    else:
+        ani = animation.FuncAnimation(fig,animate, frames=count, repeat_delay=1000,\
+            blit=False)
+        plt.show()
+
+
+
+
+
+
+
         
+#plot_kepler51b()
+#plot_escape_parameter_space()
 
-
-
+animate_loss(SAVE_TO_FILE=True)
 
 
 
@@ -521,9 +637,9 @@ def test_kepler51b():
 
     p_top = 100000.0 #1 bar or 100000 [Pa]
 
-    m_core = k51b_mass*0.95
+    m_core = k51b_mass*0.90
     core_rho = 5510.0 #earth-like density
-    T = 1700.0 #isothermal temp [K]
+    T = 1500.0 #isothermal temp [K]
 
     r, r_s = calculate_rad(p_top, m_core, core_rho, k51b_mass, R_H2, T)
 
