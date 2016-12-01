@@ -89,7 +89,7 @@ def calculate_xuv_at_t(L_xuv, t, t_sat=1.0E8):
 
     F_xuv = L_xuv
 
-    if t > t_sat:
+    if t > t_sat: 
         F_xuv = L_xuv*(t_sat/t) #beta is of order -1
 
     return F_xuv
@@ -428,17 +428,30 @@ def plot_planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
 
 
 def plot_kepler51b():
+    """
+    Plot Kepler-51b
+    """
     T = 1700.0
     core_rho = 5510.0
     core_mass = k51b_mass*0.95
     plot_planet_over_time(k51b_mass, k51b_orbital_dist, T, \
-            core_mass, core_rho, R_H2, k51_mass, duration=1.0E9)
+            core_mass, core_rho, R_H2, k51_mass, timestep=1.0E4, duration=1.0E9)
+
+def plot_planet_raius():
+    T = 1700.0
+    core_rho = 5510.0
+    mass = 6.0*M_Earth
+    core_mass = mass*0.95
+    orb_dist = 0.25
+    plot_planet_over_time(mass, orb_dist, T, \
+            core_mass, core_rho, R_H2, k51_mass, timestep=1.0E4, duration=1.0E9)
 
 
 
 
 
-def plot_escape_parameter_space(DUR=1.0E9, TS=1.0E6, NO_PLOT=False):
+
+def plot_escape_parameter_space(DUR=1.0E9, TS=1.0E6, T=1000.0, NO_PLOT=False):
     """
     Plot the parameter space for mass loss. Explore what determines if a planet
     is rocky or gaseous
@@ -446,6 +459,7 @@ def plot_escape_parameter_space(DUR=1.0E9, TS=1.0E6, NO_PLOT=False):
     Inputs:
     DUR - the duration of the model [yrs]
     TS - the time step to use [yrs]
+    T - the isothermal atmospheric temperature [K]
     NO_PLOT - don't plot the result, just return the data
 
     Returns:
@@ -457,7 +471,6 @@ def plot_escape_parameter_space(DUR=1.0E9, TS=1.0E6, NO_PLOT=False):
     core_rho = 5510.0 #core density [kg m-3]
     core_mass_percent = 0.97 #core represents 97% of the mass
     dist = 0.25*AU #orbital distance [m]
-    T = 1500.0 #isothermal atmospheric temperature [k], depends on dist
     R_gas = R_H2
     star_mass = k51_mass
 
@@ -510,6 +523,7 @@ def plot_escape_parameter_space(DUR=1.0E9, TS=1.0E6, NO_PLOT=False):
         plt.xlim(min_mass/M_Earth,max_mass/M_Earth)
         plt.xlabel("Mass [Earth Masses]")
         plt.ylabel("Radius [Earth Radii]")
+        plt.title("Atmospheric Temperature of %0.0f [K]"%(T))
         plt.show()
 
     return masses, radii, atmos_mass
@@ -525,14 +539,15 @@ def animate_loss(SAVE_TO_FILE=False):
 
     save_duration = 10 #the amount of time the saved gif should last [s]
 
-    start = 1.0E8 #start at 10 Myr
-    end = 1.0E10 #end at 1 Gyr
+    temp = 1500.0 # temperature [K]
+    start = 1.0E7 #start at 10 Myr
+    end = 1.0E9 #end at 1 Gyr
     count = 100
     dur_steps = np.linspace(start, end, count) #generate count frames
 
     timestep = 1.0E6 #the time step to use
 
-    fig = plt.figure()
+    fig = plt.figure(facecolor="white")
     ax = fig.add_subplot(111)
     cm = plt.cm.get_cmap("bwr")
 
@@ -544,7 +559,7 @@ def animate_loss(SAVE_TO_FILE=False):
 
         cur_dur = dur_steps[i]
         curVals = plot_escape_parameter_space(DUR=cur_dur, \
-                TS=timestep, NO_PLOT=True)
+                TS=timestep, T=temp, NO_PLOT=True)
         frames.append(curVals)
 
     sys.stderr.write("\r100%% done\n")
@@ -559,6 +574,7 @@ def animate_loss(SAVE_TO_FILE=False):
     plt.ylim(0.5,4)
     plt.xlabel("Mass [Earth Masses]")
     plt.ylabel("Radius [Earth Radii]")
+    plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
 
 
     #set up the time label
@@ -587,6 +603,7 @@ def animate_loss(SAVE_TO_FILE=False):
         plt.ylim(0.5,4)
         plt.xlabel("Mass [Earth Masses]")
         plt.ylabel("Radius [Earth Radii]")
+        plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
 
         #update the time text
         ax.text(7,3.75,"Time: %5.0d [Myr]"%(dur_steps[i]/1.0E6))
@@ -604,17 +621,95 @@ def animate_loss(SAVE_TO_FILE=False):
         plt.show()
 
 
+def plot_radius_mass_raltionship():
+    """
+    Plot the radius for a given mass on a single curve.
+    """
+    core_rho = 5510.0 #core density, [kg m-3]
+    R_gas = R_H2
+    p_r = 1.0E5 #1 bar in Pa
 
+    #atmos_mass = M_Earth*0.05 #static %5 of an Earth mass in the atmosphere
+    core_mass_percent = 0.97
+
+    masses = np.linspace(1.75*M_Earth,10.0*M_Earth,100)
+
+    radii = np.zeros(len(masses))
+    
+    temps = np.linspace(500,2000,4)
+
+    for T in temps:
+        for i in range(len(masses)):
+            core_mass = masses[i]*core_mass_percent
+            r, r_s = calculate_rad(p_r, core_mass, core_rho, masses[i], R_gas, T)
+            radii[i] = r
+
+        label_str = "T=%0.0f"%(T)
+        plt.plot(masses/M_Earth, radii/R_Earth, label=label_str)
+    plt.xlim(1.75,10.0)
+    plt.ylim(1.5,4)
+    plt.xlabel("Mass [Earth Masses]")
+    plt.ylabel("Radius [Earth Radii]")
+    plt.title("Atmospheric mass: %0.0fwt.%%"%((1.0-core_mass_percent)*100.0))
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+
+def plot_radius_over_individual_mass(T=1000.0):
+    """
+    Plot the radius of each body for a given mass
+    """
+
+    core_rho = 5510.0 #core density, [kg m-3]
+    R_gas = R_H2
+    core_mass_percent = 0.97
+    p_r = 1.0E5 #1 bar in Pa
+
+    masses = np.linspace(1.5*M_Earth,7.0*M_Earth,10)
+
+    for j in range(len(masses)):
+        core_mass = masses[j]*core_mass_percent
+        atmos_mass = masses[j] - core_mass
+        atmos_masses = np.linspace(0,atmos_mass,100)
+        radii = np.zeros(len(atmos_masses))
+
+        for i in range(len(atmos_masses)):
+            r, r_s = calculate_rad(p_r, core_mass, core_rho, atmos_masses[i]+core_mass, R_gas, T)
+            radii[i] = r
+
+
+        if j < 5:
+            #show only some labels
+            label_str = "%0.1f Earth Masses"%(masses[j]/M_Earth)
+            plt.plot(atmos_masses/M_Earth,radii/R_Earth, label=label_str)
+        else:
+            plt.plot(atmos_masses/M_Earth,radii/R_Earth)
+
+
+
+    plt.legend(loc="top left")
+    plt.xlabel("Atmospheric Mass [Earth Masses]")
+    plt.ylabel("Radius of 1 bar level [Earth Radii]")
+    plt.title("Temperature Set to %0.0f [K]"%(T))
+    plt.xlim(0,0.05)
+    plt.ylim(0,10)
+    plt.grid()
+    plt.show()
 
 
 
 
         
 #plot_kepler51b()
-#plot_escape_parameter_space()
+#plot_planet_raius()
 
-animate_loss(SAVE_TO_FILE=True)
 
+#plot_escape_parameter_space(DUR=1.0E9, T=1500.0)
+#animate_loss(SAVE_TO_FILE=True)
+
+#plot_radius_over_mass(T=2000.0)
+plot_radius_mass_raltionship()
 
 
 
