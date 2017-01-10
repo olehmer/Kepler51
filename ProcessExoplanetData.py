@@ -1,6 +1,8 @@
+from StringIO import StringIO
 import numpy as np
 import matplotlib.pyplot as plt
 from math import pi
+
 
 ##########CONSTANTS#################################
 G = 6.67E-11 #m3/kg/s2
@@ -40,7 +42,7 @@ class Planet:
 
 def read_exoplanet_data():
     data = np.genfromtxt("exoplanet_data.txt", skip_header=1)
-    names = data[:,0] #array of system names
+    names = np.genfromtxt("exoplanet_data.txt",skip_header=1, usecols=0, dtype=str) #data[:,0] #array of system names
     stellar_temp = data[:,1:4] #[stellar temperature [K], plus error, minus error]
     stellar_mass = data[:,7:10] #mass of the star in M_sun units
     stellar_radius = data[:,10:13] #radius of the star in R_sun units
@@ -151,10 +153,33 @@ def plot_exoplanet_mass_radius():
 
 
 
+def list_low_density_planets():
+    """
+    Plot the mass radius relationship of all known exoplanets. Color the planets
+    according to the recieved stellar flux.
+    """
+    planets = create_planet_array()
+
+    count = 1 
+    for i in range(0,len(planets)):
+        if planets[i].mass > 0 and planets[i].radius > 0 \
+                and planets[i].mass*M_jup/M_earth < 20 \
+                and planets[i].radius*R_jup/R_earth < 10:
+            mass = (planets[i].mass*M_jup/M_earth)
+            radius = (planets[i].radius*R_jup/R_earth)
+            name = planets[i].name
+            rho = (mass*M_earth*1000.0)/(4.0/3.0*pi*(radius*R_earth*100.0)**3.0)
+            
+            if rho < 0.5 and mass < 10.0:
+                print("%3d (%3d) - Planet: %12s, density: %2.3f g/cc, Mass: %2.2f Earth Masses, Radius: %2.2f Earth Radii"%(count,i,name,rho,mass,radius))
+                count += 1
+
+    
 
 
 
 
-plot_exoplanet_mass_radius()
+list_low_density_planets()
+#plot_exoplanet_mass_radius()
 
 

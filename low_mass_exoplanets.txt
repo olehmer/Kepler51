@@ -1,0 +1,9 @@
+1 (217) - Planet:   Kepler-51b, density: 0.035 g/cc, Mass: 2.10 Earth Masses, Radius: 6.95 Earth Radii
+  
+2 (218) - Planet:   Kepler-51c, density: 0.033 g/cc, Mass: 4.00 Earth Masses, Radius: 8.78 Earth Radii
+  
+3 (219) - Planet:   Kepler-51d, density: 0.049 g/cc, Mass: 7.60 Earth Masses, Radius: 9.49 Earth Radii
+  
+4 (249) - Planet:   Kepler-79d, density: 0.096 g/cc, Mass: 6.01 Earth Masses, Radius: 7.01 Earth Radii
+  
+5 (252) - Planet:   Kepler-87c, density: 0.162 g/cc, Mass: 6.39 Earth Masses, Radius: 6.01 Earth Radii
