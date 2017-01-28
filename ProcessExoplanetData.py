@@ -1,6 +1,7 @@
 from StringIO import StringIO
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from math import pi
 
 
@@ -41,8 +42,11 @@ class Planet:
 
 
 def read_exoplanet_data():
-    data = np.genfromtxt("exoplanet_data.txt", skip_header=1)
-    names = np.genfromtxt("exoplanet_data.txt",skip_header=1, usecols=0, dtype=str) #data[:,0] #array of system names
+    data = np.genfromtxt("allplanets-ascii_Jan_2017.txt", skip_header=1)
+    names = np.genfromtxt("allplanets-ascii_Jan_2017.txt",skip_header=1, usecols=0, dtype=str)
+    #data = np.genfromtxt("exoplanet_data.txt", skip_header=1)
+    #names = np.genfromtxt("exoplanet_data.txt",skip_header=1, usecols=0, dtype=str) #data[:,0] #array of system names
+
     stellar_temp = data[:,1:4] #[stellar temperature [K], plus error, minus error]
     stellar_mass = data[:,7:10] #mass of the star in M_sun units
     stellar_radius = data[:,10:13] #radius of the star in R_sun units
@@ -96,6 +100,57 @@ def create_planet_array():
 
         planets.append(p)
     return planets
+
+def plot_sunlike_planets():
+    """
+    Plot the orbital distance vs mass for planets orbiting Sun-like stars 
+    i.e. stars between 0.8 and 1.2 times the mass of the Sun
+    """
+
+    planets = create_planet_array()
+    min_mass = 0.5*M_earth
+    max_mass = 10.0*M_earth
+
+    mass = []
+    orb_dist = []
+    rho = []
+    rad = []
+    for i in range(len(planets)):
+        p = planets[i]
+        m = p.mass*M_jup
+        r = p.radius*R_jup
+        if p.stellar_mass > 0.9 and p.stellar_mass < 1.1 and p.distance>0 and\
+                m < max_mass and m > min_mass:
+            mass.append(m/M_earth)
+            orb_dist.append(p.distance)
+            rho.append(p.density)
+            rad.append(r/R_earth)
+
+            print("%s has mass: %0.2f [Earth Masses], radius: %0.2f [Earth Radii]\n\t\tdensity: %0.2f [g/cc]"%(p.name,m/M_earth,r/R_earth,p.density))
+
+    #create the Earth density curve and water density curve
+    line_masses = np.linspace(min_mass,max_mass,200)
+    line_radii_earth = np.zeros(len(line_masses))
+    rho_earth = 5510.0 #earth density
+    for i in range(0,200):
+        r_earth = (line_masses[i]/(4.0/3.0*pi*rho_earth))**(1.0/3.0)
+        line_radii_earth[i] = r_earth
+
+    #plot the line of Earth density
+    plt.plot(line_masses/M_earth, line_radii_earth/R_earth, "k--", zorder=1)
+
+    cm = plt.cm.get_cmap("bwr")
+    sc = plt.scatter(mass, rad, c=orb_dist, s=80, alpha=0.5, zorder=2,\
+            cmap=cm)#, norm=matplotlib.colors.LogNorm())
+    plt.colorbar(sc).ax.set_title("Orbital Distance [Au]")
+
+    
+    plt.xlabel("Mass [Earth Masses]")
+    plt.ylabel("Radius [Earth Radii]")
+    plt.xlim(min_mass/M_earth, max_mass/M_earth)
+    plt.grid()
+    plt.show()
+
 
 
 def plot_exoplanet_mass_radius():
@@ -179,7 +234,8 @@ def list_low_density_planets():
 
 
 
-list_low_density_planets()
+#list_low_density_planets()
 #plot_exoplanet_mass_radius()
+plot_sunlike_planets()
 
 
