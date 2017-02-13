@@ -20,6 +20,8 @@ M_neptune = 1.024E26 #mass of neptune [kg]
 M_uranus = 8.681E25 #mass of Uranus [kg]
 ################################################################
 
+#increase pyplot font size
+matplotlib.rcParams.update({'font.size':17})
 
 class Planet:
     def __init__(self):
@@ -146,9 +148,32 @@ def plot_sunlike_planets():
     #        cmap=cm)#, norm=matplotlib.colors.LogNorm())
     #plt.colorbar(sc).ax.set_title("Radius [Earth Radii]")
 
+    #make bins for bar plot
+    num_bins = 10
+    bins = np.logspace(-2,0,num_bins)
+    #bins = np.linspace(0.01,1,num_bins)
+    counts = np.zeros(num_bins)
+    for d in orb_dist:
+        for i in range(num_bins):
+            if d <= bins[i]:
+                counts[i] += 1
+                break
+
+    #for 10 bins nothing in the first one, throw it out
+    counts = counts[1:]
+    bins = bins[1:]
+    x = range(len(bins))
+    labels = np.round(bins*100.0)/100.0
+    plt.bar(x,counts,0.9, align='center')
+    #plt.gca().tick_params(axis=u'x', which=u'both',length=0)
+    plt.xticks(x,labels)#, rotation='vertical')
+    plt.ylim(0,11)
+    plt.xlabel("Orbital Distance [AU]")
+    plt.ylabel("Planet Count")
+    plt.show()
+
+    """
     sc = plt.scatter(orb_dist, mass, s=80, alpha=0.5)
-
-
     
     plt.xlabel("Orbital Distance [AU]")
     plt.ylabel("Mass [Earth Masses]")
@@ -158,7 +183,7 @@ def plot_sunlike_planets():
     plt.ylim(0,10)
     plt.grid()
     plt.show()
-
+    """
 
 
 def plot_exoplanet_mass_radius():
@@ -234,7 +259,7 @@ def list_low_density_planets():
             rho = (mass*M_earth*1000.0)/(4.0/3.0*pi*(radius*R_earth*100.0)**3.0)
             
             if rho < 0.5 and mass < 10.0:
-                print("%3d (%3d) - Planet: %12s, density: %2.3f g/cc, Mass: %2.2f Earth Masses, Radius: %2.2f Earth Radii"%(count,i,name,rho,mass,radius))
+                #print("%3d (%3d) - Planet: %12s, density: %2.3f g/cc, Mass: %2.2f Earth Masses, Radius: %2.2f Earth Radii"%(count,i,name,rho,mass,radius))
                 count += 1
 
     
