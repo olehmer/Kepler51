@@ -128,6 +128,7 @@ def plot_sunlike_planets():
 
             print("%s has mass: %0.2f [Earth Masses], radius: %0.2f [Earth Radii]\n\t\tdensity: %0.2f [g/cc]"%(p.name,m/M_earth,r/R_earth,p.density))
 
+    """
     #create the Earth density curve and water density curve
     line_masses = np.linspace(min_mass,max_mass,200)
     line_radii_earth = np.zeros(len(line_masses))
@@ -138,16 +139,23 @@ def plot_sunlike_planets():
 
     #plot the line of Earth density
     plt.plot(line_masses/M_earth, line_radii_earth/R_earth, "k--", zorder=1)
+    """
 
-    cm = plt.cm.get_cmap("bwr")
-    sc = plt.scatter(mass, rad, c=orb_dist, s=80, alpha=0.5, zorder=2,\
-            cmap=cm)#, norm=matplotlib.colors.LogNorm())
-    plt.colorbar(sc).ax.set_title("Orbital Distance [Au]")
+    #cm = plt.cm.get_cmap("bwr")
+    #sc = plt.scatter(orb_dist, mass, c=rad, s=80, alpha=0.5, zorder=2,\
+    #        cmap=cm)#, norm=matplotlib.colors.LogNorm())
+    #plt.colorbar(sc).ax.set_title("Radius [Earth Radii]")
+
+    sc = plt.scatter(orb_dist, mass, s=80, alpha=0.5)
+
 
     
-    plt.xlabel("Mass [Earth Masses]")
-    plt.ylabel("Radius [Earth Radii]")
-    plt.xlim(min_mass/M_earth, max_mass/M_earth)
+    plt.xlabel("Orbital Distance [AU]")
+    plt.ylabel("Mass [Earth Masses]")
+    #plt.xlim(min_mass/M_earth, max_mass/M_earth)
+    plt.xscale("log")
+    plt.xlim(0.01,1)
+    plt.ylim(0,10)
     plt.grid()
     plt.show()
 

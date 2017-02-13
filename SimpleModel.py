@@ -119,7 +119,7 @@ def calculate_xuv_at_t(L_xuv, t, t_sat=1.0E8):
     NOTE: see equation (1) of Luger et al (2015)
     """
 
-    F_xuv = L_xuv
+    F_xuv = 55.0 #L_xuv ORL hardcoded to 100*modern Sun at 0.1 AU
 
     if t > t_sat: 
         F_xuv = L_xuv*(t_sat/t) #beta is of order -1
@@ -475,11 +475,11 @@ def plot_kepler51b():
 
 def plot_planet_raius():
     matplotlib.rc('font',size=14)
-    T = 620.0
+    T = 880.0
     core_rho = 5510.0
     mass = 2.0*M_Earth
     core_mass = mass*0.97
-    orb_dist = 0.2*AU
+    orb_dist = 0.1*AU
     plot_planet_over_time(mass, orb_dist, T, \
             core_mass, core_rho, R_H2, k51_mass, timestep=1.0E4, duration=1.0E8)
 
@@ -789,8 +789,8 @@ def plot_radius_over_individual_mass(T=1000.0):
 
 def plot_escape_parameter_space_side_by_side():
     
-    m3000, r3000, am3000 = plot_escape_parameter_space(DUR=1.0E8, T=1240, NO_PLOT=True)
-    m2000, r2000, am2000 = plot_escape_parameter_space(DUR=1.0E8, T=620, NO_PLOT=True)
+    m3000, r3000, am3000 = plot_escape_parameter_space(DUR=1.0E8, T=1760, NO_PLOT=True)
+    m2000, r2000, am2000 = plot_escape_parameter_space(DUR=1.0E8, T=880, NO_PLOT=True)
 
     min_mass = np.min(m2000)
     max_mass = np.max(m2000)
@@ -830,7 +830,7 @@ def plot_escape_parameter_space_side_by_side():
     plt.colorbar(sc1, ax=[ax1,ax2]).set_label("Remaining Atmospheric\nFraction")
     plt.show()
 
-    title = "620K_1240K_compared.png"
+    title = "880K_1760K_compared.png"
     print("SAVING FIGURE AS: %s"%(title)) 
     fig.savefig(title, dpi=100)
 
@@ -845,10 +845,10 @@ def plot_rxuv_denominator():
     denom = []
 
     rho = 5510.0 #density of rocky core [kg m-3]
-    T = 620.0 #isothermal temp [K]
+    T = 880.0 #isothermal temp [K]
     dur = 1.0E8 #duration in Years
     tstep = 1.0E5 #timestep in Years
-    dist = 0.2*AU 
+    dist = 0.1*AU 
     times = []
     num_lines = 5 
 
@@ -914,8 +914,8 @@ def plot_rxuv_denominator():
         plt.plot(masses/M_Earth,y_array, label=line_label)
     plt.xlabel("Mass [Earth Masses]")
     plt.ylabel("$R^{2}_{XUV}$ [Earth Radii]")
-    plt.ylim(0,12)
-    plt.xlim(1,10)
+    plt.ylim(0,25)
+    plt.xlim(1.5,10)
     plt.legend(loc="bottom right")
     plt.grid()
     plt.show()
@@ -943,13 +943,13 @@ def plot_total_loss_over_time():
 
         
 #plot_kepler51b()
-#plot_planet_raius() #ORL use this one
+#plot_planet_raius() #ORL use this one for paper
 
 
 
 #plot_escape_parameter_space(DUR=1.0E8, T=1000.0)
-#plot_rxuv_denominator() #ORL use this one for paper
-plot_escape_parameter_space_side_by_side() #ORL use this one for paper
+plot_rxuv_denominator() #ORL use this one for paper
+#plot_escape_parameter_space_side_by_side() #ORL use this one for paper
 #animate_loss(SAVE_TO_FILE=True)
 
 #plot_radius_mass_raltionship()
