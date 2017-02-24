@@ -152,30 +152,61 @@ def M_frac_at_100Myr():
 
 
 #M_over_time()
-M_frac_at_100Myr()
+#M_frac_at_100Myr()
 
 M0 = 0.03*M_Earth
 time = 1.0E8*SECONDS_PER_YEAR
+a = 0.3
+"""
 ln = log(4.5*p_xuv*R_Earth/(GG*M0*rho))
 v1 = -2.0*GG*M0*R_H2*T*rho*ln
 v2 = -(2.0*GG*M0*rho*R_H2*T)**2.0
 v3 = GG*M0*R_H2**2.0*T**2.0*rho*e_xuv*F_xuv*time*ln**2.0
 v4 = 4.0*GG**2.0*rho**2.0*M0
 v5 = -3.0*e_xuv*F_xuv*time*GG*rho
+"""
 
-print("v1 = %2.3e, v2 = %2.3e, v3 = %2.3e, (v2+v3)^0.5=%2.3e"%(v1,v2,v3,(v2+v3)**0.5))
-print("v4 = %2.3e, v5 = %2.3e"%(v4,v5))
+def get_vs(r_s):
+    log_val = log(9.0*p_xuv/(4.0*a*GG*pi*rho**2*r_s**2))
+    v1 = 16.0*a*r_s**5.0*GG*pi**2*rho
+    v2 = -9.0*e_xuv*F_xuv*pi*r_s**2*time/rho
+    v3 = 24.0*a*pi*R_H2*r_s**3*T
+    v4 = 18.0*a*R_H2**2*r_s*T**2/(GG*rho)
+    v5 = 24.0*a*pi*R_H2*r_s**3*T*log_val
+    v6 = 18.0*a*R_H2**2*r_s*T**2/(GG*rho)*log_val
+    v7 = 9.0*a*R_H2**2*r_s*T**2/(GG*rho)*log_val**2
+    return (v1,v2,v3,v4,v5,v6,v7)
 
-v6 = (GG*M0*rho*e_xuv*F_xuv*time*3.0)**0.5
-v7 = -2.0*GG*M0*rho
-print("v6 = %2.3e, v7 = %2.3e"%(v6,v7))
-r_app = (1.5/pi)**0.5*(R_H2*T*ln*(v6+v7)/(v4+v5))**0.5
-print("r_app = %0.3f"%(r_app/R_Earth))
+def eqn_rs(r_s):
+    v1,v2,v3,v4,v5,v6,v7 = get_vs(r_s)
+    return v1+v2+v3+v4+v5+v6+v7
 
+guess = R_Earth*3.0
+result = fsolve(eqn_rs,guess)
+print("cutoff at r_s=%1.2f"%(result/R_Earth))
 
+v1,v2,v3,v4,v5,v6,v7 = get_vs(R_Earth*1.47)
+print("v1 = %2.3e"%(v1))
+print("v2 = %2.3e"%(v2))
+print("v3 = %2.3e"%(v3))
+print("v4 = %2.3e"%(v4))
+print("v5 = %2.3e"%(v5))
+print("v6 = %2.3e"%(v6))
+print("v7 = %2.3e"%(v7))
+print(v1+v2+v3+v4+v5+v6+v7)
 
+"""
+r_s = np.linspace(1,2.5,100)
+vals = []
+for r in r_s:
+    val = eqn_rs(r*R_Earth)
+    vals.append(val)
 
+plt.plot(r_s,vals)
+plt.yscale('log')
+plt.show()
 
+"""
 
 
 
