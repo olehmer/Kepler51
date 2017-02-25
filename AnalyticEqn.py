@@ -149,64 +149,189 @@ def M_frac_at_100Myr():
 
 
 
-
-
-#M_over_time()
-#M_frac_at_100Myr()
-
-M0 = 0.03*M_Earth
-time = 1.0E8*SECONDS_PER_YEAR
-a = 0.3
-"""
-ln = log(4.5*p_xuv*R_Earth/(GG*M0*rho))
-v1 = -2.0*GG*M0*R_H2*T*rho*ln
-v2 = -(2.0*GG*M0*rho*R_H2*T)**2.0
-v3 = GG*M0*R_H2**2.0*T**2.0*rho*e_xuv*F_xuv*time*ln**2.0
-v4 = 4.0*GG**2.0*rho**2.0*M0
-v5 = -3.0*e_xuv*F_xuv*time*GG*rho
-"""
-
-def get_vs(r_s):
+def get_vs(r_s, T, rho, F_xuv, a, e_xuv, p_xuv, R, time):
     log_val = log(9.0*p_xuv/(4.0*a*GG*pi*rho**2*r_s**2))
     v1 = 16.0*a*r_s**5.0*GG*pi**2*rho
     v2 = -9.0*e_xuv*F_xuv*pi*r_s**2*time/rho
-    v3 = 24.0*a*pi*R_H2*r_s**3*T
-    v4 = 18.0*a*R_H2**2*r_s*T**2/(GG*rho)
-    v5 = 24.0*a*pi*R_H2*r_s**3*T*log_val
-    v6 = 18.0*a*R_H2**2*r_s*T**2/(GG*rho)*log_val
-    v7 = 9.0*a*R_H2**2*r_s*T**2/(GG*rho)*log_val**2
+    v3 = 24.0*a*pi*R*r_s**3*T
+    v4 = 18.0*a*R**2*r_s*T**2/(GG*rho)
+    v5 = 24.0*a*pi*R*r_s**3*T*log_val
+    v6 = 18.0*a*R**2*r_s*T**2/(GG*rho)*log_val
+    v7 = 9.0*a*R**2*r_s*T**2/(GG*rho)*log_val**2
     return (v1,v2,v3,v4,v5,v6,v7)
 
-def eqn_rs(r_s):
-    v1,v2,v3,v4,v5,v6,v7 = get_vs(r_s)
-    return v1+v2+v3+v4+v5+v6+v7
+def print_vs(vs):
+    v1,v2,v3,v4,v5,v6,v7 = vs
+    print("v1 = %2.3e"%(v1))
+    print("v2 = %2.3e"%(v2))
+    print("v3 = %2.3e"%(v3))
+    print("v4 = %2.3e"%(v4))
+    print("v5 = %2.3e"%(v5))
+    print("v6 = %2.3e"%(v6))
+    print("v7 = %2.3e"%(v7))
+    print("Sum = %2.3e"%(v1+v2+v3+v4+v5+v6+v7))
 
-guess = R_Earth*3.0
-result = fsolve(eqn_rs,guess)
-print("cutoff at r_s=%1.2f"%(result/R_Earth))
+def rs_cutoff(T, rho, F_xuv, a, e_xuv, p_xuv, R, time):
+    
+    guess = R_Earth*4.0 #guess the radius is at 4 Earth radii
 
-v1,v2,v3,v4,v5,v6,v7 = get_vs(R_Earth*1.47)
-print("v1 = %2.3e"%(v1))
-print("v2 = %2.3e"%(v2))
-print("v3 = %2.3e"%(v3))
-print("v4 = %2.3e"%(v4))
-print("v5 = %2.3e"%(v5))
-print("v6 = %2.3e"%(v6))
-print("v7 = %2.3e"%(v7))
-print(v1+v2+v3+v4+v5+v6+v7)
+    def eqn_rs(r_s):
+        v1,v2,v3,v4,v5,v6,v7 = get_vs(r_s, T, rho, F_xuv, a, e_xuv, p_xuv, R, time)
+        return v1+v2+v3+v4+v5+v6+v7
 
-"""
-r_s = np.linspace(1,2.5,100)
-vals = []
-for r in r_s:
-    val = eqn_rs(r*R_Earth)
-    vals.append(val)
+    result = fsolve(eqn_rs, guess)
 
-plt.plot(r_s,vals)
-plt.yscale('log')
-plt.show()
+    return result
 
-"""
+TEMP = 0 #isothermal temperature
+DENS = 1 #core density
+FLUX = 2 #XUV flux
+ATMO = 3 #atmospheric mass fraction
+EFFI = 4 #XUV absorption efficiency
+PRES = 5 #pressure where XUV is absorbed
+GASC = 6 #specific gas constant
+TIME = 7 #XUV saturation time
+param_labels = {0: "Temperature [K]",
+                1: "Density [g cm$^{-3}$]",
+                2: "F$_{XUV}$ [W m$^{-2}$]",
+                3: "Atmospheric Mass Fraction",
+                4: "XUV Absorption Efficiency",
+                5: "p$_{XUV}$ [Pa]",
+                6: "Specific Gas Constant",
+                7: "XUV Saturation Time [Myr]"}
+def vary_parameter(param_min, param_max, param_type, count=100, save_fig=False,\
+        show_fig=True):
+    """
+    Plot the effect of a single parameter on the cutoff radius.
+
+    Inputs:
+    param_min - the minimum value to look at for the given parameter
+    param_max - the maximum value to look at for the given parameter
+    param_type - which parameter is being looked at (see above list)
+    count - the number of points to calculate
+    save_fig - whether to save the figure to file, plot not shown if true
+    show_fig - whether to show the figure or not
+
+    IMPORTANT:
+    When passing in a density pass it in in g/cc, it will be converted to kg/m3
+    When passing in XUV sat time, pass it in in Myr
+    """
+    #the default parameters
+    T = 880.0
+    rho = 5510.0
+    F_xuv = 55.0
+    a = 0.03
+    e_xuv = 0.2
+    p_xuv = 0.1
+    R = R_H2
+    time = 1.0E8*SECONDS_PER_YEAR
+
+    param_vals = np.linspace(param_min, param_max, count)
+    results = np.zeros(count)
+
+    analytic = np.zeros(count)
+    
+    def analytic_eqn(T, F, a):
+        val = 100.0*T + 100.0*F**2.0 + 1.0/a**2.4 + R_Earth*1.2
+
+        return val
+
+    for i in range(count):
+        param = param_vals[i]
+        
+        if param_type == TEMP:
+            results[i] = rs_cutoff(param, rho, F_xuv, a, e_xuv, p_xuv, R, time)
+            #analytic[i] = 1.65*param*F_xuv/a + R_Earth*1.05
+            analytic[i] = analytic_eqn(param, F_xuv, a)
+
+        if param_type == DENS:
+            results[i] = rs_cutoff(T, param*1000.0, F_xuv, a, e_xuv, p_xuv, R, time)
+
+        if param_type == FLUX:
+            results[i] = rs_cutoff(T, rho, param, a, e_xuv, p_xuv, R, time)
+            analytic[i] = analytic_eqn(T, param, a)
+
+
+        if param_type == ATMO:
+            results[i] = rs_cutoff(T, rho, F_xuv, param, e_xuv, p_xuv, R, time)
+            analytic[i] = analytic_eqn(T, F_xuv, param)
+
+        if param_type == EFFI:
+            results[i] = rs_cutoff(T, rho, F_xuv, a, param, p_xuv, R, time)
+
+        if param_type == PRES:
+            results[i] = rs_cutoff(T, rho, F_xuv, a, e_xuv, param, R, time)
+
+        if param_type == GASC:
+            results[i] = rs_cutoff(T, rho, F_xuv, a, e_xuv, p_xuv, param, time)
+
+        if param_type == TIME:
+            results[i] = rs_cutoff(T, rho, F_xuv, a, e_xuv, p_xuv, R, \
+                    param*(1.0E6)*SECONDS_PER_YEAR)
+
+
+    plt.plot(param_vals, results/R_Earth)
+    plt.xlabel(param_labels[param_type])
+    plt.ylabel("R$_{s}$ [Earth Masses]")
+    plt.grid()
+
+    if param_type == TEMP or param_type == FLUX or param_type == ATMO:
+        plt.plot(param_vals, analytic/R_Earth, "g--")
+
+    if param_type == PRES:
+        plt.xscale('log')
+    
+    if show_fig:
+        plt.show()
+
+    if save_fig:
+        title = "vary_param_%d"%(param_type)
+        print("Saving figure as: "+title) 
+        plt.savefig(title)
+    
+
+
+def all_params_plotted():
+    fig, axs = plt.subplots(4,2, figsize=(11,11))
+    fig.subplots_adjust(hspace=0.3, top=0.95, bottom=0.05, left=0.1, right=0.95)
+
+    plt.axes(axs[0,0])
+    vary_parameter(500.0, 3000.0, TEMP, show_fig=False)
+
+    plt.sca(axs[0,1])
+    vary_parameter(3.0,8.0, DENS, show_fig=False)
+
+    plt.axes(axs[1,0])
+    vary_parameter(10,200,FLUX, show_fig=False)
+
+    plt.axes(axs[1,1])
+    vary_parameter(0.003, 0.06, ATMO, show_fig=False)
+
+    plt.axes(axs[2,0])
+    vary_parameter(0.001,1000, PRES, show_fig=False)
+
+    plt.axes(axs[2,1])
+    vary_parameter(200,R_H2, GASC, show_fig=False)
+
+    plt.axes(axs[3,0])
+    vary_parameter(10,200, TIME, show_fig=False)
+
+    plt.delaxes(axs[3,1])
+    plt.show()
+
+#vary_parameter(500.0, 3000.0, TEMP)
+#vary_parameter(3.0,8.0, DENS)
+#vary_parameter(1,200,FLUX)
+#vary_parameter(0.003, 0.3, ATMO)
+#vary_parameter(0.001,1000, PRES)
+#vary_parameter(200,R_H2, GASC)
+#vary_parameter(10,1000, TIME)
+
+all_params_plotted()
+
+
+#r = rs_cutoff(T, rho, F_xuv, 0.03, e_xuv, p_xuv, R_H2, time=1.0E8*SECONDS_PER_YEAR)
+#print("r=%0.2f"%(r/R_Earth))
 
 
 
@@ -220,4 +345,3 @@ plt.show()
 
 
 
-#print(1.0-calc_M(M_Earth*3)/(M_Earth*3.0*0.03))
