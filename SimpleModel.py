@@ -181,7 +181,8 @@ def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass, time):
     k_tide = calculate_ktide(mass, star_mass, dist, core_rad)
 
     #Equation 5 from Luger et al. (2015)
-    dMdt = (e_xuv*pi*F_xuv*core_rad*r_xuv**2.0)/(GG*mass*k_tide)
+    #dMdt = (e_xuv*pi*F_xuv*core_rad*r_xuv**2.0)/(GG*mass*k_tide)
+    dMdt = (e_xuv*pi*F_xuv*r_xuv**3.0)/(GG*mass*k_tide)
 
     return dMdt
 
@@ -948,8 +949,8 @@ def plot_total_loss_over_time():
 
 
 #plot_escape_parameter_space(DUR=1.0E8, T=1000.0)
-plot_rxuv_denominator() #ORL use this one for paper
-#plot_escape_parameter_space_side_by_side() #ORL use this one for paper
+#plot_rxuv_denominator() #ORL use this one for paper
+plot_escape_parameter_space_side_by_side() #ORL use this one for paper
 #animate_loss(SAVE_TO_FILE=True)
 
 #plot_radius_mass_raltionship()
