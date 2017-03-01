@@ -214,6 +214,7 @@ param_labels = {0: "Isothermal Temperature [K]",
                 5: "p$_{XUV}$ [Pa]",
                 6: "Specific Gas Constant",
                 7: "XUV Saturation Time [Myr]"}
+param_titles = {0:"A",1:"B",2:"C",3:"D",4:"E",5:"F",6:"G",7:"H"}
 def vary_parameter(param_min, param_max, param_type, count=100, save_fig=False,\
         show_fig=True):
     """
@@ -284,6 +285,7 @@ def vary_parameter(param_min, param_max, param_type, count=100, save_fig=False,\
                     param*(1.0E6)*SECONDS_PER_YEAR)
 
 
+    plt.title(param_titles[param_type], y=0.85)
     plt.plot(param_vals, results/R_Earth)
     plt.xlabel(param_labels[param_type])
     plt.ylabel("R$_{s}$ [R$_{\oplus}$]")
@@ -323,20 +325,21 @@ def all_params_plotted():
 
     plt.axes(axs[1,1])
     vary_parameter(0.01, 0.1, ATMO, show_fig=False)
-
+    
     plt.axes(axs[2,0])
-    vary_parameter(0.1,10, PRES, show_fig=False)
+    vary_parameter(0.1,0.4, EFFI, show_fig=False)
 
     plt.axes(axs[2,1])
-    vary_parameter(2500,R_H2, GASC, show_fig=False)
+    vary_parameter(0.1,10, PRES, show_fig=False)
 
     plt.axes(axs[3,0])
+    vary_parameter(2500,R_H2, GASC, show_fig=False)
+
+    plt.axes(axs[3,1])
     vary_parameter(50,200, TIME, show_fig=False)
 
     #plt.delaxes(axs[3,1])
-    plt.axes(axs[3,1])
-    vary_parameter(0.1,0.4, EFFI, show_fig=False)
-
+    
     plt.show()
 
 def rs_histogram():
