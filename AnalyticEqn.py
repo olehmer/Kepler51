@@ -10,9 +10,9 @@ R_H2 = 4124.0 #gas constant for H2 [J kg-1 K-1]
 rho = 5510.0 #density of planets [kg m-3]
 GG = 6.672E-11 #Gravitational constant [N m^2 kg^-2]
 T = 880.0 #isothermal temp [K]
-p_xuv = 0.1 #pressure at XUV level [Pa]
+p_xuv = 5.0 #pressure at XUV level [Pa]
 SECONDS_PER_YEAR = 3.154E7 #seconds in a year
-e_xuv = 0.2 #XUV absorption efficiency
+e_xuv = 0.1 #XUV absorption efficiency
 F_xuv = 55.0 #XUV flux at 0.1 AU
 
 def calc_M(mass, time=1.0E8*SECONDS_PER_YEAR, FRAC=True):
@@ -147,7 +147,21 @@ def M_frac_at_100Myr():
     plt.show()
 
 
+def get_vs_sum_new(r_s,T,rho,F_xuv, a, n, p_xuv, R, time):
+    log_val = log(9.0*p_xuv/(4.0*a*GG*pi*rho**2.0*r_s**2.0))
+    v1 = 64.0*a*GG**2.0*pi**3*rho**2*r_s**5
+    v2 = -36.0*F_xuv*GG*n*pi**2*r_s**2*time
+    v3 = 144.0*a*GG*pi**2*R*rho*r_s**3*T
+    v4 = 216.0*a*pi*R**2*r_s*T**2
+    v5 = 162.0*a*R**3*T**3/(GG*rho*r_s)
+    v6 = 144.0*a*GG*pi**2*R*rho*r_s**3*T*log_val
+    v7 = 216.0*a*pi*R**2*r_s*T**2*log_val
+    v8 = 162.0*a*R**3*T**3*log_val/(GG*rho*r_s)
+    v9 = 108.0*a*pi*R**2*r_s*T**2*log_val**2
+    v10 = 81.0*a*R**3*T**3*log_val**2.0/(GG*rho*r_s)
+    v11 = 27.0*a*R**3*T**3*log_val**3/(GG*rho*r_s)
 
+    return v1+v2+v3+v4+v5+v6+v7+v8+v9+v10+v11
 
 def get_vs(r_s, T, rho, F_xuv, a, e_xuv, p_xuv, R, time):
     log_val = log(9.0*p_xuv/(4.0*a*GG*pi*rho**2*r_s**2))
@@ -176,8 +190,9 @@ def rs_cutoff(T, rho, F_xuv, a, e_xuv, p_xuv, R, time):
     guess = R_Earth*4.0 #guess the radius is at 4 Earth radii
 
     def eqn_rs(r_s):
-        v1,v2,v3,v4,v5,v6,v7 = get_vs(r_s, T, rho, F_xuv, a, e_xuv, p_xuv, R, time)
-        return v1+v2+v3+v4+v5+v6+v7
+        #v1,v2,v3,v4,v5,v6,v7 = get_vs(r_s, T, rho, F_xuv, a, e_xuv, p_xuv, R, time)
+        #return v1+v2+v3+v4+v5+v6+v7
+        return get_vs_sum_new(r_s, T, rho, F_xuv, a, e_xuv, p_xuv, R, time)
 
     result = fsolve(eqn_rs, guess)
 
@@ -191,11 +206,11 @@ EFFI = 4 #XUV absorption efficiency
 PRES = 5 #pressure where XUV is absorbed
 GASC = 6 #specific gas constant
 TIME = 7 #XUV saturation time
-param_labels = {0: "Temperature [K]",
-                1: "Density [g cm$^{-3}$]",
+param_labels = {0: "Isothermal Temperature [K]",
+                1: "Core Density [g cm$^{-3}$]",
                 2: "F$_{XUV}$ [W m$^{-2}$]",
-                3: "Atmospheric Mass Fraction",
-                4: "XUV Absorption Efficiency",
+                3: "Initial Atmospheric Mass Fraction",
+                4: "$\eta$",
                 5: "p$_{XUV}$ [Pa]",
                 6: "Specific Gas Constant",
                 7: "XUV Saturation Time [Myr]"}
@@ -221,8 +236,8 @@ def vary_parameter(param_min, param_max, param_type, count=100, save_fig=False,\
     rho = 5510.0
     F_xuv = 55.0
     a = 0.03
-    e_xuv = 0.2
-    p_xuv = 0.1
+    e_xuv = 0.1
+    p_xuv = 5.0 
     R = R_H2
     time = 1.0E8*SECONDS_PER_YEAR
 
@@ -251,7 +266,6 @@ def vary_parameter(param_min, param_max, param_type, count=100, save_fig=False,\
             results[i] = rs_cutoff(T, rho, param, a, e_xuv, p_xuv, R, time)
             analytic[i] = analytic_eqn(T, param, a)
 
-
         if param_type == ATMO:
             results[i] = rs_cutoff(T, rho, F_xuv, param, e_xuv, p_xuv, R, time)
             analytic[i] = analytic_eqn(T, F_xuv, param)
@@ -272,11 +286,14 @@ def vary_parameter(param_min, param_max, param_type, count=100, save_fig=False,\
 
     plt.plot(param_vals, results/R_Earth)
     plt.xlabel(param_labels[param_type])
-    plt.ylabel("R$_{s}$ [Earth Masses]")
+    plt.ylabel("R$_{s}$ [R$_{\oplus}$]")
     plt.grid()
 
+    plt.xlim(param_min,param_max)
+
     if param_type == TEMP or param_type == FLUX or param_type == ATMO:
-        plt.plot(param_vals, analytic/R_Earth, "g--")
+        #plt.plot(param_vals, analytic/R_Earth, "g--") #ORL TODO
+        were = 0 #bs parameter since I'm not ready to delete this yet
 
     if param_type == PRES:
         plt.xscale('log')
@@ -299,25 +316,89 @@ def all_params_plotted():
     vary_parameter(500.0, 3000.0, TEMP, show_fig=False)
 
     plt.sca(axs[0,1])
-    vary_parameter(3.0,8.0, DENS, show_fig=False)
+    vary_parameter(5.0,8.0, DENS, show_fig=False)
 
     plt.axes(axs[1,0])
-    vary_parameter(10,200,FLUX, show_fig=False)
+    vary_parameter(50,200,FLUX, show_fig=False)
 
     plt.axes(axs[1,1])
-    vary_parameter(0.003, 0.06, ATMO, show_fig=False)
+    vary_parameter(0.01, 0.1, ATMO, show_fig=False)
 
     plt.axes(axs[2,0])
-    vary_parameter(0.001,1000, PRES, show_fig=False)
+    vary_parameter(0.1,10, PRES, show_fig=False)
 
     plt.axes(axs[2,1])
-    vary_parameter(200,R_H2, GASC, show_fig=False)
+    vary_parameter(2500,R_H2, GASC, show_fig=False)
 
     plt.axes(axs[3,0])
-    vary_parameter(10,200, TIME, show_fig=False)
+    vary_parameter(50,200, TIME, show_fig=False)
 
-    plt.delaxes(axs[3,1])
+    #plt.delaxes(axs[3,1])
+    plt.axes(axs[3,1])
+    vary_parameter(0.1,0.4, EFFI, show_fig=False)
+
     plt.show()
+
+def rs_histogram():
+    """
+    Calculate the r_s cutoff across a range of parameters and plot the result
+    in a histogram
+    """
+
+    num_steps = 5 
+    r_vals = []
+
+    Temps = np.linspace(500,3000,num_steps)
+    Densities = np.linspace(5,8,num_steps)
+    Fluxes = np.linspace(50,200, num_steps)
+    Efficiencies = np.linspace(0.1,0.4, num_steps)
+    Atmos_mass_fracs = np.linspace(0.01, 0.1, num_steps)
+    Pressures = np.linspace(0.1, 10, num_steps)
+    Gas_consts = np.linspace(2500,4157,num_steps)
+    Times = np.linspace(50, 200, num_steps)
+
+    min_r = 1000.0 #huge number
+    max_r = 0
+
+    for T in Temps:
+        for rho in Densities:
+            for F in Fluxes:
+                for n in Efficiencies:
+                    for a in Atmos_mass_fracs:
+                        for p in Pressures:
+                            for R in Gas_consts:
+                                for t in Times:
+                                    r = rs_cutoff(T, rho*1000.0, F, a, n, p, R, \
+                                            time=1.0E8*SECONDS_PER_YEAR)
+                                    r = r/R_Earth
+
+                                    if r < min_r:
+                                        min_r = r
+                                    if r > max_r:
+                                        max_r = r
+
+                                    r_vals.append(r)
+
+
+    #sort the r values into bins
+    bins = np.linspace(min_r, max_r, 100)
+    counts = np.zeros(len(bins))
+
+    for r in r_vals:
+        for i in range(len(bins)):
+            if r < bins[i]:
+                counts[i] += 1
+                break
+
+    plt.bar(bins,counts, width=0.025)
+    plt.xlabel("Radius Cutoff [R$_{Earth}$]")
+    plt.ylabel("Count")
+    #plt.gca().yaxis.set_visible(False)
+    plt.show()
+    
+    return
+
+
 
 #vary_parameter(500.0, 3000.0, TEMP)
 #vary_parameter(3.0,8.0, DENS)
@@ -327,7 +408,8 @@ def all_params_plotted():
 #vary_parameter(200,R_H2, GASC)
 #vary_parameter(10,1000, TIME)
 
-all_params_plotted()
+all_params_plotted() #ORL use this one in paper
+#rs_histogram() #ORL use this one in paper
 
 
 #r = rs_cutoff(T, rho, F_xuv, 0.03, e_xuv, p_xuv, R_H2, time=1.0E8*SECONDS_PER_YEAR)
