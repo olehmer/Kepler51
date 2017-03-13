@@ -581,6 +581,11 @@ def rs_histogram_bootstrap():
     plt.xlabel("$R_{s}$: Cutoff Radius [R$_{Earth}$]")
     plt.title("A", x=0.05, y=0.85)
     plt.xlim(min_r,max_r)
+    plt.ylim(0,np.max(r_counts)+50)
+
+    #plot the Rogers (2015)
+    plt.errorbar(1.62,np.max(r_counts)+25, xerr=[[0.08],[0.67]], fmt="ro")
+    plt.plot([r_mean,r_mean],[0,np.max(r_counts)+50],"y--", linewidth=5)
 
     plt.axes(axs[0,1])
     R_bs_bins, R_bs_counts = make_hist_arrays(r_bs_means, np.min(r_bs_means), \
@@ -604,6 +609,7 @@ def rs_histogram_bootstrap():
     plt.title("D", x=0.05, y=0.85)
     plt.xlabel(r"$\bar{T}^{*}$: Mean Temperature for $\bar{R}_{s}\pm 2 \sigma$ [K]")
     plt.xlim(np.min(T_bs), np.max(T_bs))
+
 
     plt.show()
 
@@ -721,7 +727,7 @@ def plot_rs_eqn():
 #all_params_plotted() #ORL use this one in paper
 #rs_histogram() #ORL use this one in paper
 
-#rs_histogram_bootstrap() #ORL use this one
+rs_histogram_bootstrap() #ORL use this one
 
 #rs_cutoff(T, rho, F_xuv, a, e_xuv, p_xuv, R, time):
 r = rs_cutoff(1690.0, 1, 105.5, 0.059, 0.362, 5.05, 3873.0, time=101.2*1.0E6*SECONDS_PER_YEAR)
