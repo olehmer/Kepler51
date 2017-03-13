@@ -78,6 +78,7 @@ def calculate_xuv_lammer2012(dist):
     return L_xuv_orb
 
 
+
 def total_mass_loss(time, mass, dist):
     """
     Calculate the total mass lost after time seconds
@@ -203,8 +204,8 @@ def calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T):
     r_s - the radius of the core
     """
 
-    #calculate the radius of the rocky core
-    r_s = (3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
+    #calculate the radius of the rocky core based on Zeng (2015)
+    r_s = 1.3*core_mass**0.27 #(3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
 
     #calculate the surface gravity
     g_s = GG*core_mass/r_s**2.0
@@ -893,12 +894,12 @@ def plot_rxuv_denominator():
 
             if p_s==0:
                 #this is a super cludgy way to correct for timstep anomalies
-                time_vals.append((r_s/R_Earth)**2.0)
+                time_vals.append((r_s/R_Earth)**3.0)
                 #print("%3d, adding mod for mass: %0.2f"%(i,masses[i]/M_Earth))
             else:
                 #print("%3d, ind was: %d"%(i,ind))
                 #time_vals.append((r[ind]/R_Earth)**2.0)
-                time_vals.append( ((r_s**2.0/(H*log(0.1/p_s)+r_s))/R_Earth)**2.0 )
+                time_vals.append( ((r_s**2.0/(H*log(0.1/p_s)+r_s))/R_Earth)**3.0 )
 
         denom.append(time_vals)
 
@@ -918,8 +919,8 @@ def plot_rxuv_denominator():
         plt.plot(masses/M_Earth,y_array, label=line_label)
     plt.xlabel("Mass [Earth Masses]")
     plt.ylabel("$R^{3}_{XUV}$ [Earth Radii]")
-    plt.ylim(0,25)
-    plt.xlim(1.5,10)
+    plt.ylim(0,100)
+    plt.xlim(1.75,10)
     plt.legend(loc="bottom right")
     plt.grid()
     plt.show()
