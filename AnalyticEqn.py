@@ -514,7 +514,7 @@ def bootstrap(data, CL=0.95, title=""):
 
 
 
-def rs_histogram_bootstrap():
+def rs_histogram_bootstrap(LOAD_FROM_FILE=True):
     """
     Calculate the r_s cutoff across a range of parameters and plot the result
     in a histogram

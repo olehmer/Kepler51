@@ -23,7 +23,7 @@ kB = 1.380662E-23        #Boltzmann's constant [J K^-1]
 GG = 6.672E-11           #Gravitational constant [N m^2 kg^-2]
 SIGMA = 5.6704E-8       #Stefan-Boltzmann constant [W m^-2 K^-4]
 m_H = 1.66E-27          #Mass of H atom [kg]
-e_xuv = 0.1 #typically between 0.1 and 0.3
+e_xuv = 0.362 #typically between 0.1 and 0.3
 AU = 1.49598E11 #AU in m
 R_H2 = 4124.0 #gas constant for H2 [J kg-1 K]
 R_AIR = 287.0 #gas constant for air [J kg-1 K]
@@ -120,10 +120,10 @@ def calculate_xuv_at_t(L_xuv, t, t_sat=1.0E8):
     NOTE: see equation (1) of Luger et al (2015)
     """
 
-    F_xuv = 55.0 #L_xuv ORL hardcoded to 100*modern Sun at 0.1 AU
+    F_xuv = 105.5 #L_xuv ORL hardcoded to 100*modern Sun at 0.1 AU
 
     if t > t_sat: 
-        F_xuv = L_xuv*(t_sat/t) #beta is of order -1
+        F_xuv = F_xuv*(t_sat/t) #beta is of order -1
 
     return F_xuv
 
@@ -511,13 +511,13 @@ def plot_escape_parameter_space(DUR=1.0E8, TS=1.0E6, T=1000.0, NO_PLOT=False):
     """
 
     core_rho = 5510.0 #core density [kg m-3]
-    core_mass_percent = 0.97 #core represents 97% of the mass
-    dist = 0.2*AU #orbital distance [m]
-    R_gas = R_H2
+    core_mass_percent = 0.941 #core represents 94.1% of the mass
+    dist = 0.1*AU #orbital distance [m]
+    R_gas = 3873.0 #R_H2
     star_mass = k51_mass
 
     min_mass = 0.5*M_Earth
-    max_mass = 10.0*M_Earth
+    max_mass = 13.0*M_Earth
 
     masses = np.linspace(min_mass,max_mass,20)
     radii = np.zeros(len(masses))
@@ -582,7 +582,7 @@ def animate_loss(SAVE_TO_FILE=False):
 
     save_duration = 10 #the amount of time the saved gif should last [s]
 
-    temp = 2000.0 # temperature [K]
+    temp = 1690.0 # temperature [K]
     start = 1.0E7 #start at 10 Myr
     end = 1.0E9 #end at 1 Gyr
     count = 100
@@ -617,14 +617,14 @@ def animate_loss(SAVE_TO_FILE=False):
     plt.ylim(0.5,4)
     plt.xlabel("Mass [Earth Masses]")
     plt.ylabel("Radius [Earth Radii]")
-    plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
+    #plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
 
 
     #set up the time label
     ax.text(7,3.75,"Time: %4.0d [Myr]"%(0))
 
     #calculate the Earth density line
-    line_masses = np.linspace(0.5*M_Earth,10*M_Earth, 200)
+    line_masses = np.linspace(0.5*M_Earth,13*M_Earth, 200)
     line_radii_earth = np.zeros(len(line_masses))
     rho_earth = 5510.0 #earth density
     for i in range(0,200):
@@ -640,13 +640,13 @@ def animate_loss(SAVE_TO_FILE=False):
         plt.cla() #clear the frame
         sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=atmos_mass, cmap=cm, s=80.0)
 
-        plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "g--")
+        plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "k--")
 
         plt.xlim(np.min(masses)/M_Earth,np.max(masses)/M_Earth)
         plt.ylim(0.5,4)
         plt.xlabel("Mass [Earth Masses]")
         plt.ylabel("Radius [Earth Radii]")
-        plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
+        #plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
 
         #update the time text
         ax.text(7,3.75,"Time: %5.0d [Myr]"%(dur_steps[i]/1.0E6))
@@ -953,9 +953,9 @@ def plot_total_loss_over_time():
 
 
 #plot_escape_parameter_space(DUR=1.0E8, T=1000.0)
-plot_rxuv_denominator() #ORL use this one for paper
+#plot_rxuv_denominator() #ORL use this one for paper
 #plot_escape_parameter_space_side_by_side() #ORL use this one for paper
-#animate_loss(SAVE_TO_FILE=True)
+animate_loss(SAVE_TO_FILE=True)
 
 #plot_radius_mass_raltionship()
 #plot_Rxuv_at_time()
