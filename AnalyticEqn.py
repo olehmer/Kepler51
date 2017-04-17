@@ -529,7 +529,7 @@ def rs_histogram_bootstrap(LOAD_FROM_FILE=True):
     max_r = 0
 
     for c in range(num_pts):
-        T = uniform(500,3000)
+        T = uniform(880,3000)
         F = uniform(43,172)
         n = uniform(0.1,0.6)
         a = uniform(0.01,0.1)
@@ -572,21 +572,33 @@ def rs_histogram_bootstrap(LOAD_FROM_FILE=True):
         time_vals.append(param_vals[ind][6]/(1.0E6*SECONDS_PER_YEAR))
 
 
-    fig, axs = plt.subplots(2,2, figsize=(11,9))
-    fig.subplots_adjust(hspace=0.3)
+    #fig, axs = plt.subplots(2,2, figsize=(11,9))
+    #fig.subplots_adjust(hspace=0.3)
 
-    plt.axes(axs[0,0])
+    #plt.axes(axs[0,0])
     r_bins, r_counts = make_hist_arrays(r_vals, min_r, max_r, 100)
     plt.bar(r_bins, r_counts, width=0.025)
     plt.xlabel("$R_{s}$: Cutoff Radius [R$_{Earth}$]")
-    plt.title("A", x=0.05, y=0.85)
+    #plt.title("A", x=0.05, y=0.85)
     plt.xlim(min_r,max_r)
     plt.ylim(0,np.max(r_counts)+50)
 
     #plot the Rogers (2015)
     plt.errorbar(1.62,np.max(r_counts)+25, xerr=[[0.08],[0.67]], fmt="ro")
-    plt.plot([r_mean,r_mean],[0,np.max(r_counts)+50],"y--", linewidth=5)
 
+    #plot the mean and 95% CI for our model
+    r_mean = np.mean(r_vals)
+    r_median = np.median(r_vals)
+    r_std = np.std(r_vals)
+    plt.errorbar(r_mean, np.max(r_counts)+12.5, xerr=[[1*r_std],[1*r_std]], fmt="yo")
+
+    #plot the mean line
+    #plt.plot([r_mean,r_mean],[0,np.max(r_counts)+50],"y--", linewidth=5)
+
+
+    print("mean=%1.2f, median=%1.2f, std=%1.2f"%(r_mean,r_median,r_std))
+
+    """
     plt.axes(axs[0,1])
     R_bs_bins, R_bs_counts = make_hist_arrays(r_bs_means, np.min(r_bs_means), \
             np.max(r_bs_means), 100)
@@ -609,10 +621,12 @@ def rs_histogram_bootstrap(LOAD_FROM_FILE=True):
     plt.title("D", x=0.05, y=0.85)
     plt.xlabel(r"$\bar{T}^{*}$: Mean Temperature for $\bar{R}_{s}\pm 2 \sigma$ [K]")
     plt.xlim(np.min(T_bs), np.max(T_bs))
+    """
 
 
     plt.show()
 
+    bootstrap(T_vals,title="T")
     bootstrap(F_vals,title="F")
     bootstrap(n_vals,title="n")
     bootstrap(a_vals,title="a")
