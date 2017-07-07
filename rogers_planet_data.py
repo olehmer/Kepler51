@@ -71,7 +71,6 @@ def plot_orbital_dists_as_sunlike():
     for star in init_stars():
         lum = SIGMA*star.temp**4.0*4.0/3.0*pi*(star.radius*SOLAR_RAD)**3.0
 
-        print("\n%s"%(star.name))
 
         for planet in star.planets:
             a = (GG*(star.mass*SOLAR_MASS)*(planet*SECONDS_PER_DAY)**2.0/(4.0*pi**2.0))**(1.0/3.0)
@@ -80,8 +79,10 @@ def plot_orbital_dists_as_sunlike():
             orbits.append(solar_equiv)
             fluxes.append(flux/1366.0)
 
-            #print("\t%0.2f AU"%(solar_equiv))
-            print("\t%0.2f E Flux"%(flux/1366.0))
+            if flux/1366.0 > 100.0:
+                print("\n%s"%(star.name))
+                #print("\t%0.2f AU"%(solar_equiv))
+                print("\t%0.2f E Flux (period: %0.2f [days], equiv dist: %0.2f [AU])"%(flux/1366.0,planet, solar_equiv))
 
     #print("Orbital median: %0.2f"%(np.median(orbits)))
 
@@ -91,7 +92,7 @@ def plot_orbital_dists_as_sunlike():
     #plt.show()
 
     bmin = 0.0
-    bmax = np.max(fluxes)
+    bmax = 50.0 #np.max(fluxes)
     nbins = 30
     bins,counts = make_hist_arrays(fluxes,bmin,bmax,nbins)
     w = (bmax - bmin)/nbins

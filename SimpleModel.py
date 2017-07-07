@@ -23,7 +23,7 @@ kB = 1.380662E-23        #Boltzmann's constant [J K^-1]
 GG = 6.672E-11           #Gravitational constant [N m^2 kg^-2]
 SIGMA = 5.6704E-8       #Stefan-Boltzmann constant [W m^-2 K^-4]
 m_H = 1.66E-27          #Mass of H atom [kg]
-e_xuv = 0.362 #typically between 0.1 and 0.3
+e_xuv = 0.1 #typically between 0.1 and 0.3
 AU = 1.49598E11 #AU in m
 R_H2 = 4124.0 #gas constant for H2 [J kg-1 K]
 R_AIR = 287.0 #gas constant for air [J kg-1 K]
@@ -120,7 +120,7 @@ def calculate_xuv_at_t(L_xuv, t, t_sat=1.0E8):
     NOTE: see equation (1) of Luger et al (2015)
     """
 
-    F_xuv = 105.5 #L_xuv ORL hardcoded to 100*modern Sun at 0.1 AU
+    F_xuv = 55.0 #L_xuv ORL hardcoded to 100*modern Sun at 0.1 AU
 
     if t > t_sat: 
         F_xuv = F_xuv*(t_sat/t) #beta is of order -1
@@ -153,7 +153,7 @@ def calculate_flux_planck(T, star_rad, dist, start=0.1, stop=10.0, nsteps=1000):
     flux = flux*star_rad**2.0/dist**2.0
     return flux
             
-def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass, time):
+def calculate_loss_rate(mass, core_rad, r_xuv, dist, star_mass, time):
     """
     This function will calculate the hydrodynamic loss rate from the planet
     based on Luger (2015).
@@ -161,7 +161,7 @@ def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass, time):
     Inputs:
     mass - the total mass of the planet
     core_rad - the radius of the planet
-    rad_1bar - the radius of the 1 bar level in the atmosphere
+    r_xuv- the radius of the 1 bar level in the atmosphere
     dist - the orbital distance of the planet
     star_mass - the mass of the host star
     time - the time since formation of the planet [in years]
@@ -173,16 +173,12 @@ def calculate_loss_rate(mass, core_rad, rad_1bar, dist, star_mass, time):
     xuv = calculate_xuv_lammer2012(dist)
     F_xuv = calculate_xuv_at_t(xuv, time)
 
-
-    #assume the radius of XUV absorption is equal to the radius of the whole
-    #planet (usually within ~10% from Luger et al (2015)
-    #but we're not actually doing that, it's calculated
-    r_xuv = rad_1bar
-
+    #I'm ignoring tides to make the analytic process easier (doesn't make much
+    #difference in the end for the planets I'm modeling)
     k_tide = 1.0 #calculate_ktide(mass, star_mass, dist, core_rad)
 
     #Equation 5 from Luger et al. (2015)
-    #dMdt = (e_xuv*pi*F_xuv*core_rad*r_xuv**2.0)/(GG*mass*k_tide)
+    #dMdt = (e_xuv*pi*F_xuv*core_rad*r_xuv**2.0)/(GG*mass*k_tide) #ignore this line
     dMdt = (e_xuv*pi*F_xuv*r_xuv**3.0)/(GG*mass*k_tide)
 
     return dMdt
@@ -205,7 +201,7 @@ def calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T):
     """
 
     #calculate the radius of the rocky core based on Zeng (2015)
-    r_s = 1.3*core_mass**0.27 #(3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
+    r_s = 1.02*core_mass**0.27 #(3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
 
     #calculate the surface gravity
     g_s = GG*core_mass/r_s**2.0
@@ -371,13 +367,14 @@ def planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
     dist - the orbital distance of the planet [m]
     T - the isothermal temperature of the planetary atmosphere [K] 
     core_mass - the mass in the planet's core [kg]
-    core_rho - the density of the planet's core [kg m-3]
+    core_rho - the density of the planet's core [kg m-3] *****this parameter
+               isn't used anymore but I was too lazy to delete it**********
     R_gas - the specific gas constant of the atmosphere [J kg-1 K]
     star_mass - the mass of the parent star [kg]
     timestep - the timestep to use in the simulation, given in years
     duration - the duration of the simulation in years
     p_r = the pressure to calculate the radius to (defaults to base of 
-          thermosphere, which is at 5 Pa [See Owen & Jackson (2012)])
+          thermosphere, which is at ~5 Pa [See Owen & Jackson (2012)])
 
     Returns:
     time - the array of time values
@@ -458,12 +455,14 @@ def plot_planet_over_time(mass, dist, T, core_mass, core_rho, R_gas,\
     time, atmos_mass, radius, r_s = planet_over_time(mass,dist,T,core_mass,\
             core_rho,R_gas,star_mass,timestep,duration, p_r=5.0)
 
-    plt.subplots_adjust(hspace=0)
+    fig = plt.figure(figsize=(9,6))
+    plt.subplots_adjust(hspace=0, top=0.75, right=0.97)
     plot_radius_over_time(time, radius, r_s)
     plot_mass_over_time(time, atmos_mass)
     #plot_density_over_time(time,atmos_mass,core_mass,radius) #IMPORTANT if 
     #uncommented change subplot numbers back to 311 and 312 in previous funcs
     plt.xlabel("Time [Myr]")
+    plt.tight_layout()
     plt.show()
 
 
@@ -511,13 +510,13 @@ def plot_escape_parameter_space(DUR=1.0E8, TS=1.0E6, T=1000.0, NO_PLOT=False):
     """
 
     core_rho = 5510.0 #core density [kg m-3]
-    core_mass_percent = 0.941 #core represents 94.1% of the mass
+    core_mass_percent = 0.970 #core represents 94.1% of the mass
     dist = 0.1*AU #orbital distance [m]
-    R_gas = 3873.0 #R_H2
+    R_gas = 4157.0 #R_H2
     star_mass = k51_mass
 
     min_mass = 0.5*M_Earth
-    max_mass = 13.0*M_Earth
+    max_mass = 10.0*M_Earth
 
     masses = np.linspace(min_mass,max_mass,20)
     radii = np.zeros(len(masses))
@@ -582,9 +581,9 @@ def animate_loss(SAVE_TO_FILE=False):
 
     save_duration = 10 #the amount of time the saved gif should last [s]
 
-    temp = 1690.0 # temperature [K]
-    start = 1.0E7 #start at 10 Myr
-    end = 1.0E9 #end at 1 Gyr
+    temp = 1760.0 # temperature [K]
+    start = 1.0E6 #start at 10 Myr
+    end = 1.0E8 #end at 1 Gyr
     count = 100
     dur_steps = np.linspace(start, end, count) #generate count frames
 
@@ -592,6 +591,8 @@ def animate_loss(SAVE_TO_FILE=False):
 
     fig = plt.figure(facecolor="white")
     ax = fig.add_subplot(111)
+    fig.subplots_adjust(bottom=0.15)
+
     cm = plt.cm.get_cmap("bwr")
 
     frames = []
@@ -614,14 +615,16 @@ def animate_loss(SAVE_TO_FILE=False):
     clb = plt.colorbar(sc)
     clb.set_label("Remaining Atmospheric\nFraction")
     plt.xlim(np.min(masses)/M_Earth,np.max(masses)/M_Earth)
-    plt.ylim(0.5,4)
-    plt.xlabel("Mass [Earth Masses]")
-    plt.ylabel("Radius [Earth Radii]")
+    plt.ylim(0.5,6)
+    plt.xlabel("Mass [$M_{\oplus}$]")
+    plt.ylabel("Radius [$R_{\oplus}$]")
+    plt.gca().text(6.85,1.97, "5.5 g cm$^{-3}$", rotation=7.0, fontsize=12, bbox={'facecolor':'white', 'alpha':1.0, 'pad':0.10, 'linewidth':0})
+
     #plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
 
 
     #set up the time label
-    ax.text(7,3.75,"Time: %4.0d [Myr]"%(0))
+    ax.text(6.2,5.65,"Time: %d Myr"%(0))
 
     #calculate the Earth density line
     line_masses = np.linspace(0.5*M_Earth,13*M_Earth, 200)
@@ -643,13 +646,16 @@ def animate_loss(SAVE_TO_FILE=False):
         plt.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "k--")
 
         plt.xlim(np.min(masses)/M_Earth,np.max(masses)/M_Earth)
-        plt.ylim(0.5,4)
-        plt.xlabel("Mass [Earth Masses]")
-        plt.ylabel("Radius [Earth Radii]")
+        plt.ylim(0.5,6)
+        plt.xlabel("Mass [$M_{\oplus}$]")
+        plt.ylabel("Radius [$R_{\oplus}$]")
         #plt.title("Atmospheric Temperature set to %0.0f [K]"%(temp))
 
         #update the time text
-        ax.text(7,3.75,"Time: %5.0d [Myr]"%(dur_steps[i]/1.0E6))
+        ax.text(6.2,5.65,"Time: %d Myr"%(dur_steps[i]/1.0E6))
+
+        plt.gca().text(6.85,1.97, "5.5 g cm$^{-3}$", rotation=7.0, fontsize=12, bbox={'facecolor':'white', 'alpha':1.0, 'pad':0.10, 'linewidth':0})
+
 
         if SAVE_TO_FILE:
             return mplfig_to_npimage(fig)
@@ -794,7 +800,7 @@ def plot_radius_over_individual_mass(T=1000.0):
 
 def plot_escape_parameter_space_side_by_side():
     
-    m3000, r3000, am3000 = plot_escape_parameter_space(DUR=1.0E8, T=1760, NO_PLOT=True)
+    m3000, r3000, am3000 = plot_escape_parameter_space(DUR=1.1E8, T=1760, NO_PLOT=True)
     m2000, r2000, am2000 = plot_escape_parameter_space(DUR=1.0E8, T=880, NO_PLOT=True)
 
     min_mass = np.min(m2000)
@@ -810,34 +816,39 @@ def plot_escape_parameter_space_side_by_side():
 
 
     fig, (ax1,ax2) = plt.subplots(1,2,sharey=True)
-    fig.subplots_adjust(wspace=0.05)
+    fig.subplots_adjust(wspace=0.05, bottom=0.15)
     fig.set_size_inches(12,6, forward=True)
 
     cm = plt.cm.get_cmap("bwr")
 
     ax1.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "k--", zorder=1)
     sc1 = ax1.scatter(m2000/M_Earth,r2000/R_Earth, c=am2000, cmap=cm, s=80.0, zorder=2)
-    ax1.set_xlabel("Mass [Earth Masses]")
+    ax1.text(6.85,2.00, "5.5 g cm$^{-3}$", rotation=8.5, fontsize=12, bbox={'facecolor':'white', 'alpha':1.0, 'pad':0.10, 'linewidth':0})
+    ax1.set_xlabel("Mass [$M_{\oplus}$]")
     ax1.set_title("A", y=0.9, x=0.075)
-    ax1.set_ylabel("Radius [Earth Radii]")
+    ax1.set_ylabel("Radius [$R_{\oplus}$]")
     ax1.set_xlim(min_mass/M_Earth,max_mass/M_Earth)
+    ax1.set_ylim(0,6)
     ax1.xaxis.grid()
     ax1.yaxis.grid()
 
     ax2.plot(line_masses/M_Earth, line_radii_earth/R_Earth, "k--", zorder=1)
+    ax2.text(6.85,2.00, "5.5 g cm$^{-3}$", rotation=8.5, fontsize=12, bbox={'facecolor':'white', 'alpha':1.0, 'pad':0.10, 'linewidth':0})
     sc2 = ax2.scatter(m3000/M_Earth,r3000/R_Earth, c=am3000, cmap=cm, s=80.0, zorder=2)
-    ax2.set_xlabel("Mass [Earth Masses]")
+    ax2.set_xlabel("Mass [$M_{\oplus}$]")
     ax2.set_title("B", y=0.9, x=0.075)
     ax2.set_xlim(min_mass/M_Earth,max_mass/M_Earth)
+    ax2.set_ylim(0,6)
     plt.grid()
 
 
     plt.colorbar(sc1, ax=[ax1,ax2]).set_label("Remaining Atmospheric\nFraction")
     plt.show()
 
-    title = "880K_1760K_compared.png"
-    print("SAVING FIGURE AS: %s"%(title)) 
-    fig.savefig(title, dpi=100)
+    title = "880K_1760K_compared"
+    print("SAVING FIGURE AS: %s.(pdf/png)"%(title)) 
+    fig.savefig(title+".png", dpi=100)
+    fig.savefig(title+".pdf", dpi=100)
 
 
 
@@ -904,6 +915,9 @@ def plot_rxuv_denominator():
         denom.append(time_vals)
 
 
+    fig = plt.figure()
+    fig.subplots_adjust(bottom=0.15)
+
     for i in range(num_lines):
         y_array = []
         for j in range(len(denom)):
@@ -917,8 +931,8 @@ def plot_rxuv_denominator():
         else:
              line_label = "%3.0f Myr"%(times[ind]/SECONDS_PER_YEAR/1E6)
         plt.plot(masses/M_Earth,y_array, label=line_label)
-    plt.xlabel("Mass [Earth Masses]")
-    plt.ylabel("$R^{3}_{XUV}$ [Earth Radii]")
+    plt.xlabel("Mass [$M_{\oplus}$]")
+    plt.ylabel("$R^{3}_{XUV}$ [$R_{\oplus}$]")
     plt.ylim(0,100)
     plt.xlim(1.75,10)
     plt.legend(loc="bottom right")
@@ -954,8 +968,8 @@ def plot_total_loss_over_time():
 
 #plot_escape_parameter_space(DUR=1.0E8, T=1000.0)
 #plot_rxuv_denominator() #ORL use this one for paper
-#plot_escape_parameter_space_side_by_side() #ORL use this one for paper
-animate_loss(SAVE_TO_FILE=True)
+plot_escape_parameter_space_side_by_side() #ORL use this one for paper
+#animate_loss(SAVE_TO_FILE=True)
 
 #plot_radius_mass_raltionship()
 #plot_Rxuv_at_time()

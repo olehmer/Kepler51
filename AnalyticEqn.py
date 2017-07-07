@@ -179,6 +179,7 @@ def get_vs_sum_Zeng(rs,T,F_xuv, a, n, p_xuv, R, time):
     """
     log_val = log(p_xuv/(a*GG*rs**3.4))
     #11 terms total... no typos ftw!
+    """
     v1 = 0.3788*a*rs**0.7
     v2 = 16.4176*a*R*T/(GG*rs**2)
     v3 = 245.103*a*R**2*T**2/(GG**2*rs**4.7)
@@ -190,6 +191,20 @@ def get_vs_sum_Zeng(rs,T,F_xuv, a, n, p_xuv, R, time):
     v9 = 114.417*a*R**3*T**3*log_val**2/(GG**3*rs**7.4)
     v10 = 6.96917*a*R**3*T**3*log_val**3/(GG**3*rs**7.4)
     v11 = -8.29355*F_xuv*n*time/(GG*rs**3.7)
+    """
+    #correct version 7/6/17
+    v1 = 0.945023*a*rs**0.7
+    v2 = 10.9323*a*R*T/(GG*rs**2)
+    v3 = 45.3307*a*R**2*T**2/(GG**2*rs**4.7)
+    v4 = 68.6673*a*R**3*T**3/(GG**3*rs**7.4)
+    v5 = 3.0*a*R*T*log_val/(GG*rs**2)
+    v6 = 23.1367*a*R**2*T**2*log_val/(GG**2*rs**4.7)
+    v7 = 47.968*a*R**3*T**3*log_val/(GG**3*rs**7.4)
+    v8 = 3.17452*a*R**2*T**2*log_val**2/(GG**2*rs**4.7)
+    v9 = 12.2413*a*R**3*T**3*log_val**2/(GG**3*rs**7.4)
+    v10 = 1.11973*a*R**3*T**3*log_val**3/(GG**3*rs**7.4)
+    v11 = -3.32435*F_xuv*n*time/(GG*rs**3.7)
+
     return v1+v2+v3+v4+v5+v6+v7+v8+v9+v10+v11
 
 def get_vs_sum_new(r_s,T,rho,F_xuv, a, n, p_xuv, R, time):
@@ -514,7 +529,7 @@ def bootstrap(data, CL=0.95, title=""):
 
 
 
-def rs_histogram_bootstrap(LOAD_FROM_FILE=True):
+def rs_histogram_bootstrap(SHOW_PLOT=True):
     """
     Calculate the r_s cutoff across a range of parameters and plot the result
     in a histogram
@@ -577,127 +592,131 @@ def rs_histogram_bootstrap(LOAD_FROM_FILE=True):
 
     #plt.axes(axs[0,0])
     r_bins, r_counts = make_hist_arrays(r_vals, min_r, max_r, 100)
-    plt.bar(r_bins, r_counts, width=0.025)
-    plt.xlabel("$R_{s}$: Cutoff Radius [R$_{Earth}$]")
-    #plt.title("A", x=0.05, y=0.85)
-    plt.xlim(min_r,max_r)
-    plt.ylim(0,np.max(r_counts)+50)
 
-    #plot the Rogers (2015)
-    plt.errorbar(1.62,np.max(r_counts)+25, xerr=[[0.08],[0.67]], fmt="ro")
+    if SHOW_PLOT:
+        fig = plt.figure()
+        fig.subplots_adjust(bottom=0.15)
+        plt.bar(r_bins, r_counts, width=0.012, color="c", linewidth=0) 
+        plt.xlabel("$R_{s}$: Cutoff Radius [$R_{\oplus}$]")
+        #plt.title("A", x=0.05, y=0.85)
+        plt.xlim(min_r,max_r)
+        plt.ylim(0,np.max(r_counts)+50)
 
-    #plot the mean and 95% CI for our model
-    r_mean = np.mean(r_vals)
-    r_median = np.median(r_vals)
-    r_std = np.std(r_vals)
-    plt.errorbar(r_mean, np.max(r_counts)+12.5, xerr=[[1*r_std],[1*r_std]], fmt="yo")
+        #plot the Rogers (2015)
+        plt.errorbar(1.62,np.max(r_counts)+25, xerr=[[0.08],[0.67]], fmt="ro")
 
-    #plot the mean line
-    #plt.plot([r_mean,r_mean],[0,np.max(r_counts)+50],"y--", linewidth=5)
+        #plot the mean and 95% CI for our model
+        r_mean = np.mean(r_vals)
+        r_median = np.median(r_vals)
+        r_std = np.std(r_vals)
+        plt.errorbar(r_mean, np.max(r_counts)+12.5, xerr=[[2*r_std],[2*r_std]], fmt="ko")
 
-
-    print("mean=%1.2f, median=%1.2f, std=%1.2f"%(r_mean,r_median,r_std))
-
-    """
-    plt.axes(axs[0,1])
-    R_bs_bins, R_bs_counts = make_hist_arrays(r_bs_means, np.min(r_bs_means), \
-            np.max(r_bs_means), 100)
-    plt.bar(R_bs_bins, R_bs_counts, width=0.00025)
-    plt.xlabel(r"$\bar{R}_{s}$: Mean Cutoff Radius [R$_{Earth}$]")
-    plt.title("B", x=0.05, y=0.85)
-    plt.xlim(np.min(r_bs_means), np.max(r_bs_means))
-
-    plt.axes(axs[1,0])
-    T_bins, T_counts = make_hist_arrays(T_vals, 500, 3000, 20)
-    plt.bar(T_bins, T_counts, width=125)
-    plt.xlabel(r"$T^{*}$: Temperature for $\bar{R}_{s}\pm 2 \sigma$ [K]")
-    plt.title("C", x=0.05, y=0.85)
-    plt.xlim(500+125,3000)
-
-    plt.axes(axs[1,1])
-    T_mean, T_min, T_max, T_bs = bootstrap(T_vals,title="T")
-    T_bs_bins, T_bs_counts = make_hist_arrays(T_bs, np.min(T_bs), np.max(T_bs),100)
-    plt.bar(T_bs_bins, T_bs_counts, width=5)
-    plt.title("D", x=0.05, y=0.85)
-    plt.xlabel(r"$\bar{T}^{*}$: Mean Temperature for $\bar{R}_{s}\pm 2 \sigma$ [K]")
-    plt.xlim(np.min(T_bs), np.max(T_bs))
-    """
+        #plot the mean line
+        #plt.plot([r_mean,r_mean],[0,np.max(r_counts)+50],"y--", linewidth=5)
 
 
-    plt.show()
+        print("mean=%1.2f, median=%1.2f, std=%1.2f"%(r_mean,r_median,r_std))
 
-    bootstrap(T_vals,title="T")
-    bootstrap(F_vals,title="F")
-    bootstrap(n_vals,title="n")
-    bootstrap(a_vals,title="a")
-    bootstrap(p_vals,title="p")
-    bootstrap(R_vals,title="R")
-    bootstrap(time_vals,title="time")
+        """
+        plt.axes(axs[0,1])
+        R_bs_bins, R_bs_counts = make_hist_arrays(r_bs_means, np.min(r_bs_means), \
+                np.max(r_bs_means), 100)
+        plt.bar(R_bs_bins, R_bs_counts, width=0.00025)
+        plt.xlabel(r"$\bar{R}_{s}$: Mean Cutoff Radius [R$_{Earth}$]")
+        plt.title("B", x=0.05, y=0.85)
+        plt.xlim(np.min(r_bs_means), np.max(r_bs_means))
+
+        plt.axes(axs[1,0])
+        T_bins, T_counts = make_hist_arrays(T_vals, 500, 3000, 20)
+        plt.bar(T_bins, T_counts, width=125)
+        plt.xlabel(r"$T^{*}$: Temperature for $\bar{R}_{s}\pm 2 \sigma$ [K]")
+        plt.title("C", x=0.05, y=0.85)
+        plt.xlim(500+125,3000)
+
+        plt.axes(axs[1,1])
+        T_mean, T_min, T_max, T_bs = bootstrap(T_vals,title="T")
+        T_bs_bins, T_bs_counts = make_hist_arrays(T_bs, np.min(T_bs), np.max(T_bs),100)
+        plt.bar(T_bs_bins, T_bs_counts, width=5)
+        plt.title("D", x=0.05, y=0.85)
+        plt.xlabel(r"$\bar{T}^{*}$: Mean Temperature for $\bar{R}_{s}\pm 2 \sigma$ [K]")
+        plt.xlim(np.min(T_bs), np.max(T_bs))
+        """
 
 
-    """ 
-    fig, axs = plt.subplots(4,2, figsize=(11,11))
-    fig.subplots_adjust(hspace=0.3, top=0.95, bottom=0.05, left=0.1, right=0.95)
+        plt.show()
 
-    plt.axes(axs[0,0])
-    r_bins, r_counts = make_hist_arrays(r_vals, min_r, max_r, 100)
-    plt.bar(r_bins, r_counts, width=0.025)
-    plt.xlabel("Cutoff  Radius [R$_{Earth}$]")
-    plt.xlim(min_r,max_r)
+        #bootstrap(T_vals,title="T")
+        #bootstrap(F_vals,title="F")
+        #bootstrap(n_vals,title="n")
+        #bootstrap(a_vals,title="a")
+        #bootstrap(p_vals,title="p")
+        #bootstrap(R_vals,title="R")
+        #bootstrap(time_vals,title="time")
 
-    plt.axes(axs[0,1])
-    T_bins, T_counts = make_hist_arrays(T_vals, 500, 3000, 20)
-    plt.bar(T_bins, T_counts, width=125)
-    plt.xlabel("T")
-    plt.xlim(500+125,3000)
-    bootstrap(T_vals,title="T")
 
-    plt.axes(axs[1,0])
-    F_bins, F_counts = make_hist_arrays(F_vals, 43, 172, 20)
-    plt.bar(F_bins, F_counts, width=6.45)
-    plt.xlabel("F$_{XUV}$")
-    plt.xlim(43+6.45,172)
-    bootstrap(F_vals,title="F")
+        """ 
+        fig, axs = plt.subplots(4,2, figsize=(11,11))
+        fig.subplots_adjust(hspace=0.3, top=0.95, bottom=0.05, left=0.1, right=0.95)
 
-    plt.axes(axs[1,1])
-    n_bins, n_counts = make_hist_arrays(n_vals, 0.1, 0.6, 20)
-    plt.bar(n_bins, n_counts, width=0.025)
-    plt.xlabel("$\eta$")
-    plt.xlim(0.1+0.025,0.6)
-    bootstrap(n_vals,title="n")
+        plt.axes(axs[0,0])
+        r_bins, r_counts = make_hist_arrays(r_vals, min_r, max_r, 100)
+        plt.bar(r_bins, r_counts, width=0.025)
+        plt.xlabel("Cutoff  Radius [R$_{Earth}$]")
+        plt.xlim(min_r,max_r)
 
-    plt.axes(axs[2,0])
-    a_bins, a_counts = make_hist_arrays(a_vals, 0.01, 0.1, 20)
-    plt.bar(a_bins, a_counts, width=0.0045)
-    plt.xlabel(r"$\alpha$")
-    plt.xlim(0.01+0.0045,0.1)
-    bootstrap(a_vals,title="a")
+        plt.axes(axs[0,1])
+        T_bins, T_counts = make_hist_arrays(T_vals, 500, 3000, 20)
+        plt.bar(T_bins, T_counts, width=125)
+        plt.xlabel("T")
+        plt.xlim(500+125,3000)
+        bootstrap(T_vals,title="T")
 
-    plt.axes(axs[2,1])
-    p_bins, p_counts = make_hist_arrays(p_vals, 0.1, 10, 20)
-    plt.bar(p_bins, p_counts, width=0.495)
-    plt.xlabel("p$_{XUV}$")
-    plt.xlim(0.1+0.495,10)
-    bootstrap(p_vals,title="p")
+        plt.axes(axs[1,0])
+        F_bins, F_counts = make_hist_arrays(F_vals, 43, 172, 20)
+        plt.bar(F_bins, F_counts, width=6.45)
+        plt.xlabel("F$_{XUV}$")
+        plt.xlim(43+6.45,172)
+        bootstrap(F_vals,title="F")
 
-    plt.axes(axs[3,0])
-    R_bins, R_counts = make_hist_arrays(R_vals, 3615, 4157, 20)
-    plt.bar(R_bins, R_counts, width=27.1)
-    plt.xlabel("R$_{g}$")
-    plt.xlim(3615+27.1,4157)
-    bootstrap(R_vals,title="R")
+        plt.axes(axs[1,1])
+        n_bins, n_counts = make_hist_arrays(n_vals, 0.1, 0.6, 20)
+        plt.bar(n_bins, n_counts, width=0.025)
+        plt.xlabel("$\eta$")
+        plt.xlim(0.1+0.025,0.6)
+        bootstrap(n_vals,title="n")
 
-    plt.axes(axs[3,1])
-    time_bins, time_counts = make_hist_arrays(time_vals, 80, 120, 20)
-    plt.bar(time_bins, time_counts, width=2)
-    plt.xlabel(r"$\tau$")
-    plt.xlim(80+2,120)
-    bootstrap(time_vals,title="time")
+        plt.axes(axs[2,0])
+        a_bins, a_counts = make_hist_arrays(a_vals, 0.01, 0.1, 20)
+        plt.bar(a_bins, a_counts, width=0.0045)
+        plt.xlabel(r"$\alpha$")
+        plt.xlim(0.01+0.0045,0.1)
+        bootstrap(a_vals,title="a")
 
-    plt.show()
-    """
-   
-    return
+        plt.axes(axs[2,1])
+        p_bins, p_counts = make_hist_arrays(p_vals, 0.1, 10, 20)
+        plt.bar(p_bins, p_counts, width=0.495)
+        plt.xlabel("p$_{XUV}$")
+        plt.xlim(0.1+0.495,10)
+        bootstrap(p_vals,title="p")
+
+        plt.axes(axs[3,0])
+        R_bins, R_counts = make_hist_arrays(R_vals, 3615, 4157, 20)
+        plt.bar(R_bins, R_counts, width=27.1)
+        plt.xlabel("R$_{g}$")
+        plt.xlim(3615+27.1,4157)
+        bootstrap(R_vals,title="R")
+
+        plt.axes(axs[3,1])
+        time_bins, time_counts = make_hist_arrays(time_vals, 80, 120, 20)
+        plt.bar(time_bins, time_counts, width=2)
+        plt.xlabel(r"$\tau$")
+        plt.xlim(80+2,120)
+        bootstrap(time_vals,title="time")
+
+        plt.show()
+        """
+       
+    return (r_bins, r_counts)
 
 
 
@@ -728,6 +747,66 @@ def plot_rs_eqn():
     plt.show()
 
 
+def fulton_data_plot():
+
+    fig, ax1 = plt.subplots()
+    plt.subplots_adjust(left=0.17, right=0.83, bottom=0.13)
+    ax2 = ax1.twinx()
+
+    #data from Fulton et al. (2017) Table 3
+    #formatted as (radius bin low, radius bin high, bin count, count error)
+    fulton_data = [\
+            (1.16,1.29,0.079,0.016),\
+            (1.29,1.43,0.077,0.014),\
+            (1.43,1.59,0.05,0.01),\
+            (1.59,1.77,0.0373,0.0081),\
+            (1.77,1.97,0.040,0.011),\
+            (1.97,2.19,0.079,0.015),\
+            (2.19,2.43,0.095,0.017),\
+            (2.43,2.70,0.080,0.015),\
+            (2.70,3.00,0.055,0.013),\
+            (3.00,3.33,0.04,0.01),\
+            (3.33,3.70,0.0268,0.0081),\
+            (3.70,4.12,0.009,0.0046),\
+            (4.12,4.57,0.0066,0.0044),\
+            (4.57,5.08,0.0036,0.0025),\
+            (5.08,5.65,0.0019,0.0014)]
+
+
+    #calculate the cutoff hist
+    r_bins, r_counts = rs_histogram_bootstrap(SHOW_PLOT=False)
+    count = np.sum(r_counts)
+
+    prob_rocky = np.zeros(len(r_bins))
+    for i in range(0,len(prob_rocky)):
+        prob_rocky[i] = r_counts[i]
+        if i > 0:
+            prob_rocky[i] += prob_rocky[i-1]
+    prob_rocky = 1.0 - prob_rocky/count
+
+    ax2.fill_between(np.insert(r_bins,0,0.5),np.insert(prob_rocky,0,1), color="red", alpha=0.3)
+    ax2.fill_between(np.append(r_bins,4.0),1.0-np.append(prob_rocky,0), color="cyan", alpha=0.3)
+
+    #plot the fulton line
+    prev = -1
+    for pnt in fulton_data:
+        if prev > 0:
+            ax1.plot((pnt[0],pnt[0]),(prev,pnt[2]),"k",linewidth=2)
+
+        ax1.errorbar((pnt[0]+pnt[1])/2.0,pnt[2], yerr=[[pnt[3]],[pnt[3]]], fmt="k")
+
+        ax1.plot((pnt[0],pnt[1]),(pnt[2],pnt[2]), "k", linewidth=2)
+        prev = pnt[2]
+
+
+
+    ax1.grid()
+    ax1.set_xlabel("Planet Radius [$R_{\oplus}$]")
+    ax1.set_ylabel("Number of Planets Per Star\nWith Orbital Period < 100 days")
+    ax2.set_ylabel("Probability Planet is\nGas-enveloped (blue)/Rocky (red)")
+    plt.xlim(0.5,4)
+    plt.show()
+
 #vary_parameter(500.0, 3000.0, TEMP)
 #vary_parameter(3.0,8.0, DENS)
 #vary_parameter(1,200,FLUX)
@@ -739,13 +818,14 @@ def plot_rs_eqn():
 #plot_rs_eqn()
 
 #all_params_plotted() #ORL use this one in paper
-#rs_histogram() #ORL use this one in paper
+#rs_histogram() 
 
-rs_histogram_bootstrap() #ORL use this one
+#rs_histogram_bootstrap() #ORL use this one
 
-#rs_cutoff(T, rho, F_xuv, a, e_xuv, p_xuv, R, time):
-r = rs_cutoff(1690.0, 1, 105.5, 0.059, 0.362, 5.05, 3873.0, time=101.2*1.0E6*SECONDS_PER_YEAR)
-print("r=%0.2f"%(r/R_Earth))
+fulton_data_plot() #ORL use this one in paper
+
+#r = rs_cutoff(1690.0, 1, 105.5, 0.059, 0.362, 5.05, 3873.0, time=101.2*1.0E6*SECONDS_PER_YEAR)
+#print("r=%0.2f"%(r/R_Earth))
 
 
 
