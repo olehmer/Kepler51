@@ -179,7 +179,6 @@ def get_vs_sum_Zeng(rs,T,F_xuv, a, n, p_xuv, R, time):
     """
     log_val = log(p_xuv/(a*GG*rs**3.4))
     #11 terms total... no typos ftw!
-    """
     v1 = 0.3788*a*rs**0.7
     v2 = 16.4176*a*R*T/(GG*rs**2)
     v3 = 245.103*a*R**2*T**2/(GG**2*rs**4.7)
@@ -191,8 +190,9 @@ def get_vs_sum_Zeng(rs,T,F_xuv, a, n, p_xuv, R, time):
     v9 = 114.417*a*R**3*T**3*log_val**2/(GG**3*rs**7.4)
     v10 = 6.96917*a*R**3*T**3*log_val**3/(GG**3*rs**7.4)
     v11 = -8.29355*F_xuv*n*time/(GG*rs**3.7)
+
+    #correct version 7/6/17 - not correct... 7/7/16
     """
-    #correct version 7/6/17
     v1 = 0.945023*a*rs**0.7
     v2 = 10.9323*a*R*T/(GG*rs**2)
     v3 = 45.3307*a*R**2*T**2/(GG**2*rs**4.7)
@@ -204,6 +204,7 @@ def get_vs_sum_Zeng(rs,T,F_xuv, a, n, p_xuv, R, time):
     v9 = 12.2413*a*R**3*T**3*log_val**2/(GG**3*rs**7.4)
     v10 = 1.11973*a*R**3*T**3*log_val**3/(GG**3*rs**7.4)
     v11 = -3.32435*F_xuv*n*time/(GG*rs**3.7)
+    """
 
     return v1+v2+v3+v4+v5+v6+v7+v8+v9+v10+v11
 

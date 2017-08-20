@@ -25,7 +25,7 @@ SIGMA = 5.6704E-8       #Stefan-Boltzmann constant [W m^-2 K^-4]
 m_H = 1.66E-27          #Mass of H atom [kg]
 e_xuv = 0.1 #typically between 0.1 and 0.3
 AU = 1.49598E11 #AU in m
-R_H2 = 4124.0 #gas constant for H2 [J kg-1 K]
+R_H2 = 4157.0 #gas constant for H2 [J kg-1 K]
 R_AIR = 287.0 #gas constant for air [J kg-1 K]
 M_Earth = 5.972E24 #mass of Earth in [kg]
 R_Earth = 6.371E6 #radius of Earth [m]
@@ -201,7 +201,7 @@ def calculate_rad(p_r, core_mass, core_rho, mass, R_gas, T):
     """
 
     #calculate the radius of the rocky core based on Zeng (2015)
-    r_s = 1.02*core_mass**0.27 #(3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
+    r_s = 1.3*core_mass**0.27 #(3.0*core_mass/(4.0*pi*core_rho))**(1.0/3.0)
 
     #calculate the surface gravity
     g_s = GG*core_mass/r_s**2.0
@@ -663,7 +663,8 @@ def animate_loss(SAVE_TO_FILE=False):
 
     if SAVE_TO_FILE:
         ani = mpy.VideoClip(animate, duration=save_duration) 
-        ani.write_gif("protoatmosphere_loss.gif", fps=20, opt="nq")
+        #ani.write_gif("protoatmosphere_loss.gif", fps=20, opt="nq")
+        ani.write_videofile("protoatmosphere_loss.mpeg", fps=20 codec="mpeg4")
     else:
         ani = animation.FuncAnimation(fig,animate, frames=count, repeat_delay=1000,\
             blit=False)
@@ -802,6 +803,9 @@ def plot_escape_parameter_space_side_by_side():
     
     m3000, r3000, am3000 = plot_escape_parameter_space(DUR=1.1E8, T=1760, NO_PLOT=True)
     m2000, r2000, am2000 = plot_escape_parameter_space(DUR=1.0E8, T=880, NO_PLOT=True)
+
+    for i in range(0,len(m3000)):
+        print("mass: %0.2f, radius: %0.2f"%(m3000[i]/M_Earth, r3000[i]/R_Earth))
 
     min_mass = np.min(m2000)
     max_mass = np.max(m2000)
@@ -968,8 +972,8 @@ def plot_total_loss_over_time():
 
 #plot_escape_parameter_space(DUR=1.0E8, T=1000.0)
 #plot_rxuv_denominator() #ORL use this one for paper
-plot_escape_parameter_space_side_by_side() #ORL use this one for paper
-#animate_loss(SAVE_TO_FILE=True)
+#plot_escape_parameter_space_side_by_side() #ORL use this one for paper
+animate_loss(SAVE_TO_FILE=True)
 
 #plot_radius_mass_raltionship()
 #plot_Rxuv_at_time()
