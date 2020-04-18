@@ -1,4 +1,3 @@
-from StringIO import StringIO
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -268,7 +267,7 @@ def list_low_density_planets():
 
 
 #list_low_density_planets()
-#plot_exoplanet_mass_radius()
-plot_sunlike_planets()
+plot_exoplanet_mass_radius()
+#plot_sunlike_planets()
 
 

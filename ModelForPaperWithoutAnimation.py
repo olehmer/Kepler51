@@ -15,9 +15,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation 
 import sys
 
-from moviepy.video.io.bindings import mplfig_to_npimage #used for animation
-import moviepy.editor as mpy
-
 ###########################UNIVERSAL CONSTANTS#################################
 kB = 1.380662E-23        #Boltzmann's constant [J K^-1]
 GG = 6.672E-11           #Gravitational constant [N m^2 kg^-2]
@@ -235,7 +232,7 @@ def plot_radius_over_time(time, radius, r_s):
     plt.subplot(211,aspect="equal")
 
     #find the 5 points
-    step = len(time)/4 #3 interior points, both ends
+    step = int(len(time)/4) #3 interior points, both ends
 
     r_0 = (time[0],radius[0]/r_s)
     r_1 = (time[step],radius[step]/r_s)
@@ -570,13 +567,9 @@ def plot_escape_parameter_space(DUR=1.0E8, TS=1.0E6, T=1000.0, NO_PLOT=False):
 
     return masses, radii, atmos_mass
 
-def animate_loss(SAVE_TO_FILE=False):
+def animate_loss():
     """
     Animate the plot_escape_parameter_space() function over time
-
-    Inputs:
-    SAVE_TO_FILE - if true the animation will be written to the file
-                   protoatmosphere_loss.gif
     """
 
     save_duration = 10 #the amount of time the saved gif should last [s]
@@ -636,9 +629,6 @@ def animate_loss(SAVE_TO_FILE=False):
 
     
     def animate(i):
-        if SAVE_TO_FILE:
-            #i is passed in as the amount of time in the duration
-            i = int(floor(i/float(save_duration)*float(count)))
         masses, radii, atmos_mass = frames[i]
         plt.cla() #clear the frame
         sc = plt.scatter(masses/M_Earth,radii/R_Earth, c=atmos_mass, cmap=cm, s=80.0)
@@ -657,18 +647,9 @@ def animate_loss(SAVE_TO_FILE=False):
         plt.gca().text(6.85,1.97, "5.5 g cm$^{-3}$", rotation=7.0, fontsize=12, bbox={'facecolor':'white', 'alpha':1.0, 'pad':0.10, 'linewidth':0})
 
 
-        if SAVE_TO_FILE:
-            return mplfig_to_npimage(fig)
-
-
-    if SAVE_TO_FILE:
-        ani = mpy.VideoClip(animate, duration=save_duration) 
-        #ani.write_gif("protoatmosphere_loss.gif", fps=20, opt="nq")
-        #ani.write_videofile("protoatmosphere_loss.mpeg", fps=20 codec="mpeg4")
-    else:
-        ani = animation.FuncAnimation(fig,animate, frames=count, repeat_delay=1000,\
-            blit=False)
-        plt.show()
+    ani = animation.FuncAnimation(fig,animate, frames=count, repeat_delay=1000,\
+        blit=False)
+    plt.show()
 
 
 def plot_Rxuv_at_time(time=1.0E8):
@@ -895,9 +876,9 @@ def plot_rxuv_denominator():
 
 
         time_vals = [] 
-        spacing = len(ams)/(num_lines-1) 
+        spacing = int(len(ams)/(num_lines-1))
         for j in range(num_lines):
-            ind = int(j*spacing)
+            ind = j*spacing
             if ind >= len(ams)-1:
                 ind = len(ams)-1
             atmos_mass = ams[ind]
@@ -913,14 +894,14 @@ def plot_rxuv_denominator():
                 #print("%3d, adding mod for mass: %0.2f"%(i,masses[i]/M_Earth))
             else:
                 #print("%3d, ind was: %d"%(i,ind))
-                #time_vals.append((r[ind]/R_Earth)**2.0)
-                time_vals.append( ((r_s**2.0/(H*log(0.1/p_s)+r_s))/R_Earth)**3.0 )
+                time_vals.append((r[ind]/R_Earth)**3.0)
+                #time_vals.append( ((r_s**2.0/(H*log(0.1/p_s)+r_s))/r_s)**1.0 )
 
         denom.append(time_vals)
 
 
-    fig = plt.figure()
-    fig.subplots_adjust(bottom=0.15)
+    fig = plt.figure(figsize=(6.4, 4.8))
+    fig.subplots_adjust(bottom=0.15, left=0.15)
 
     for i in range(num_lines):
         y_array = []
@@ -939,8 +920,10 @@ def plot_rxuv_denominator():
     plt.ylabel("$R^{3}_{XUV}$ [$R_{\oplus}$]")
     plt.ylim(0,100)
     plt.xlim(1.75,10)
-    plt.legend(loc="bottom right")
+    #plt.legend(loc="bottom right")
+    plt.legend()
     plt.grid()
+    plt.savefig("figure4_corrected.pdf", dpi=600)
     plt.show()
 
 
@@ -966,18 +949,19 @@ def plot_total_loss_over_time():
 
         
 #plot_kepler51b()
-#plot_planet_raius() #ORL use this one for paper
+#plot_planet_raius() #this is Figure 3
 
 
 
 #plot_escape_parameter_space(DUR=1.0E8, T=1000.0)
-plot_rxuv_denominator() #ORL use this one for paper (FIgure 4)
+plot_rxuv_denominator() #ORL use this one for paper (it's figure 4)
 #plot_escape_parameter_space_side_by_side() #ORL use this one for paper
-#animate_loss(SAVE_TO_FILE=True)
+#animate_loss()
 
 #plot_radius_mass_raltionship()
 #plot_Rxuv_at_time()
 #plot_total_loss_over_time()
+
 
 
 ##################################TESTING FUNCTIONS############################
@@ -1006,26 +990,5 @@ def test_kepler51b():
 
     print("found altitude = %0.1f km (%0.2f of observed)"%((r-r_s)/1000.0, r/k51b_rad))
     print("core is %0.2f of observed"%(r_s/k51b_rad))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

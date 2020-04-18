@@ -773,7 +773,6 @@ def fulton_data_plot():
             (4.57,5.08,0.0036,0.0025),\
             (5.08,5.65,0.0019,0.0014)]
 
-
     #calculate the cutoff hist
     r_bins, r_counts = rs_histogram_bootstrap(SHOW_PLOT=False)
     count = np.sum(r_counts)
@@ -823,7 +822,7 @@ def fulton_data_plot():
 
 #rs_histogram_bootstrap() #ORL use this one
 
-fulton_data_plot() #ORL use this one in paper
+#fulton_data_plot() #ORL use this one in paper
 
 #r = rs_cutoff(1690.0, 1, 105.5, 0.059, 0.362, 5.05, 3873.0, time=101.2*1.0E6*SECONDS_PER_YEAR)
 #print("r=%0.2f"%(r/R_Earth))
